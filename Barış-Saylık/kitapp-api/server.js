@@ -10,3 +10,5 @@ app.listen(PORT, () => {
   console.log(`🚀 KitApp API sunucusu ${PORT} portunda çalışıyor`);
   console.log(`📖 Ortam: ${process.env.NODE_ENV || 'development'}`);
 });
+
+module.exports = app;
