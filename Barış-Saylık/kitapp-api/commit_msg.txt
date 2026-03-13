@@ -1,0 +1,1 @@
+fix: Gemini model gemini-2.0-flash olarak guncellendi
