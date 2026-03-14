@@ -1,1 +1,1 @@
-fix: Gemini model lowered to gemini-1.5-flash and test files ignored
+feat: implemented intelligent mock fallback for AI endpoints
