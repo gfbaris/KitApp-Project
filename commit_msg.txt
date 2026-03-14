@@ -1,1 +1,1 @@
-chore: Vercel deployment configs added
+fix: Gemini model lowered to gemini-1.5-flash and test files ignored
