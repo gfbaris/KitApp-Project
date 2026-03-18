@@ -1,1 +1,1 @@
-feat: implemented intelligent mock fallback for AI endpoints
+docs: updated API URL and adjusted REST API assignment docs for KitApp ecosystem
