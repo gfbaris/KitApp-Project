@@ -1,1 +1,1 @@
-docs: updated API URL and adjusted REST API assignment docs for KitApp ecosystem
+feat: KitApp web frontend tamamlandi - Baris Saylik
