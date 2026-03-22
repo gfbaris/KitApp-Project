@@ -13,7 +13,8 @@ api.interceptors.request.use(config => {
 api.interceptors.response.use(
   res => res,
   err => {
-    if (err.response?.status === 401) {
+    // Eğer istek login ise ve 401 dönüyorsa sayfayı yenileme (hata mesajını göstermesine izin ver)
+    if (err.response?.status === 401 && !err.config.url.includes('/auth/login')) {
       localStorage.clear()
       window.location.href = '/login'
     }

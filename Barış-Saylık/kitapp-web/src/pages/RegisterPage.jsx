@@ -82,22 +82,22 @@ const RegisterPage = () => {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className={labelClass}>Ad *</label>
-                <input name="firstName" required value={form.firstName} onChange={handleChange} placeholder="Barış" className={inputClass} />
+                <input id="reg-firstName" name="firstName" required value={form.firstName} onChange={handleChange} placeholder="Adınız" autoComplete="given-name" className={inputClass} />
               </div>
               <div>
                 <label className={labelClass}>Soyad *</label>
-                <input name="lastName" required value={form.lastName} onChange={handleChange} placeholder="Saylık" className={inputClass} />
+                <input id="reg-lastName" name="lastName" required value={form.lastName} onChange={handleChange} placeholder="Soyadınız" autoComplete="family-name" className={inputClass} />
               </div>
             </div>
 
             <div>
               <label className={labelClass}>E-posta *</label>
-              <input name="email" type="email" required value={form.email} onChange={handleChange} placeholder="ornek@email.com" className={inputClass} />
+              <input id="reg-email" name="email" type="email" required value={form.email} onChange={handleChange} placeholder="ornek@email.com" autoComplete="email" className={inputClass} />
             </div>
 
             <div>
               <label className={labelClass}>Şifre * <span className="text-slate-400 font-normal normal-case">(min. 8 karakter)</span></label>
-              <input name="password" type="password" required value={form.password} onChange={handleChange} placeholder="••••••••" className={inputClass} />
+              <input id="reg-password" name="password" type="password" required value={form.password} onChange={handleChange} placeholder="••••••••" autoComplete="new-password" className={inputClass} />
               {form.password && (
                 <div className="h-1 rounded-full mt-2 bg-slate-100 overflow-hidden">
                   <div className="h-full rounded-full transition-all duration-300" style={{ width: strength.width, backgroundColor: strength.color }} />
@@ -107,12 +107,12 @@ const RegisterPage = () => {
 
             <div>
               <label className={labelClass}>Şifre Tekrar *</label>
-              <input name="confirmPassword" type="password" required value={form.confirmPassword} onChange={handleChange} placeholder="••••••••" className={inputClass} />
+              <input id="reg-confirmPassword" name="confirmPassword" type="password" required value={form.confirmPassword} onChange={handleChange} placeholder="••••••••" autoComplete="new-password" className={inputClass} />
             </div>
 
             <div>
               <label className={labelClass}>Telefon <span className="text-slate-400 font-normal normal-case">(opsiyonel)</span></label>
-              <input name="phone" type="tel" value={form.phone} onChange={handleChange} placeholder="+90 555 000 00 00" className={inputClass} />
+              <input id="reg-phone" name="phone" type="tel" value={form.phone} onChange={handleChange} placeholder="+90 5XX XXX XX XX" autoComplete="tel" className={inputClass} />
             </div>
 
             <button

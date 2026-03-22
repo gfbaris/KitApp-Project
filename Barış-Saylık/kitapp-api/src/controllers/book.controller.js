@@ -6,6 +6,7 @@ const addBook = async (req, res, next) => {
     const { title, author, isbn, pageCount, publishYear, genre, coverImage, description } = req.body;
 
     const book = await Book.create({
+      userId: req.user._id,
       title, author, isbn, pageCount, publishYear, genre, coverImage, description,
     });
 
@@ -22,9 +23,11 @@ const listBooks = async (req, res, next) => {
     const limit = Math.min(50, Math.max(1, parseInt(req.query.limit) || 10));
     const skip = (page - 1) * limit;
 
+    const query = { userId: req.user._id };
+
     const [books, total] = await Promise.all([
-      Book.find().skip(skip).limit(limit).sort({ createdAt: -1 }),
-      Book.countDocuments(),
+      Book.find(query).skip(skip).limit(limit).sort({ createdAt: -1 }),
+      Book.countDocuments(query),
     ]);
 
     res.status(200).json({
@@ -39,9 +42,9 @@ const listBooks = async (req, res, next) => {
 // GET /books/search?query=...
 const searchBooks = async (req, res, next) => {
   try {
-    const { query, page = 1, limit = 10 } = req.query;
+    const { query: searchQuery, page = 1, limit = 10 } = req.query;
 
-    if (!query) {
+    if (!searchQuery) {
       return res.status(400).json({ error: 'Arama sorgusu zorunludur (query)' });
     }
 
@@ -49,12 +52,14 @@ const searchBooks = async (req, res, next) => {
     const limitNum = Math.min(50, Math.max(1, parseInt(limit)));
     const skip = (pageNum - 1) * limitNum;
 
+    const query = { $text: { $search: searchQuery }, userId: req.user._id };
+
     const [books, total] = await Promise.all([
-      Book.find({ $text: { $search: query } }, { score: { $meta: 'textScore' } })
+      Book.find(query, { score: { $meta: 'textScore' } })
         .sort({ score: { $meta: 'textScore' } })
         .skip(skip)
         .limit(limitNum),
-      Book.countDocuments({ $text: { $search: query } }),
+      Book.countDocuments(query),
     ]);
 
     res.status(200).json({
@@ -79,12 +84,14 @@ const filterBooks = async (req, res, next) => {
     const limitNum = Math.min(50, Math.max(1, parseInt(limit)));
     const skip = (pageNum - 1) * limitNum;
 
+    const query = { genre: { $regex: genre, $options: 'i' }, userId: req.user._id };
+
     const [books, total] = await Promise.all([
-      Book.find({ genre: { $regex: genre, $options: 'i' } })
+      Book.find(query)
         .skip(skip)
         .limit(limitNum)
         .sort({ createdAt: -1 }),
-      Book.countDocuments({ genre: { $regex: genre, $options: 'i' } }),
+      Book.countDocuments(query),
     ]);
 
     res.status(200).json({
@@ -99,9 +106,9 @@ const filterBooks = async (req, res, next) => {
 // GET /books/:bookId
 const getBook = async (req, res, next) => {
   try {
-    const book = await Book.findById(req.params.bookId);
+    const book = await Book.findOne({ _id: req.params.bookId, userId: req.user._id });
     if (!book) {
-      return res.status(404).json({ error: 'Kitap bulunamadı' });
+      return res.status(404).json({ error: 'Kitap bulunamadı veya erişim yetkiniz yok' });
     }
     res.status(200).json(book);
   } catch (error) {
@@ -114,14 +121,14 @@ const updateBook = async (req, res, next) => {
   try {
     const { title, author, isbn, pageCount, publishYear, genre, coverImage, description } = req.body;
 
-    const book = await Book.findByIdAndUpdate(
-      req.params.bookId,
+    const book = await Book.findOneAndUpdate(
+      { _id: req.params.bookId, userId: req.user._id },
       { title, author, isbn, pageCount, publishYear, genre, coverImage, description },
       { new: true, runValidators: true }
     );
 
     if (!book) {
-      return res.status(404).json({ error: 'Kitap bulunamadı' });
+      return res.status(404).json({ error: 'Kitap bulunamadı veya yetkisiz işlem' });
     }
 
     res.status(200).json(book);
@@ -133,9 +140,9 @@ const updateBook = async (req, res, next) => {
 // DELETE /books/:bookId
 const deleteBook = async (req, res, next) => {
   try {
-    const book = await Book.findByIdAndDelete(req.params.bookId);
+    const book = await Book.findOneAndDelete({ _id: req.params.bookId, userId: req.user._id });
     if (!book) {
-      return res.status(404).json({ error: 'Kitap bulunamadı' });
+      return res.status(404).json({ error: 'Kitap bulunamadı veya yetkisiz işlem' });
     }
     res.status(204).send();
   } catch (error) {

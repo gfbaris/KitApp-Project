@@ -1,11 +1,13 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { useToast } from '../context/ToastContext'
 import { loginUser } from '../services/api'
 
 const LoginPage = () => {
   const navigate = useNavigate()
   const { login } = useAuth()
+  const { showToast } = useToast()
 
   const [email, setEmail]       = useState('')
   const [password, setPassword] = useState('')
@@ -15,12 +17,12 @@ const LoginPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    setError('')
     setLoading(true)
     try {
       const res = await loginUser({ email, password })
       const { token, user } = res.data
       login(token, user)
+      showToast('Giriş başarılı! Hoş geldin 👋', 'success')
       navigate('/home')
     } catch (err) {
       setError(err.response?.data?.error || err.response?.data?.message || 'Giriş başarısız. Bilgilerinizi kontrol edin.')
@@ -67,9 +69,11 @@ const LoginPage = () => {
             <div>
               <label className={labelClass}>E-posta Adresi</label>
               <input
+                id="login-email" name="email"
                 type="email" required value={email}
                 onChange={e => setEmail(e.target.value)}
                 placeholder="ornek@email.com"
+                autoComplete="email"
                 className={inputClass}
               />
             </div>
@@ -78,10 +82,12 @@ const LoginPage = () => {
               <label className={labelClass}>Şifre</label>
               <div className="relative">
                 <input
+                  id="login-password" name="password"
                   type={showPass ? 'text' : 'password'}
                   required value={password}
                   onChange={e => setPassword(e.target.value)}
                   placeholder="••••••••"
+                  autoComplete="current-password"
                   className={inputClass + ' pr-12'}
                 />
                 <button

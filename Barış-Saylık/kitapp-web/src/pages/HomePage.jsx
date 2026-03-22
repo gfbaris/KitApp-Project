@@ -8,13 +8,14 @@ import { useAuth } from '../context/AuthContext'
 
 const FILTERS = ['Hepsi', 'Roman', 'Bilim Kurgu', 'Tarih', 'Polisiye', 'Şiir', 'Biyografi']
 
-// parseBooksFromResponse: API'nin döndürdüğü veriyi her zaman array olarak al
 const parseBooks = (data) => {
   if (Array.isArray(data?.data)) return data.data
   if (Array.isArray(data?.books)) return data.books
   if (Array.isArray(data)) return data
   return []
 }
+
+
 
 const HomePage = () => {
   const { user } = useAuth()
@@ -27,22 +28,31 @@ const HomePage = () => {
   const [recommendations, setRecommendations] = useState([])
   const [recLoading, setRecLoading]       = useState(true)
 
+  const userId = user?._id || localStorage.getItem('userId')
+
   const loadBooks = useCallback(async (genre = 'Hepsi') => {
     setLoading(true)
     setSearchResults(null)
     setSearchQuery('')
     try {
-      const res = genre === 'Hepsi' ? await getBooks({ limit: 50 }) : await filterBooks(genre)
-      setBooks(parseBooks(res.data))
+      // Kullanıcıya özel kitapları getir (userId filtresi ile)
+      const params = { limit: 50 }
+      if (userId) params.userId = userId
+      const res = genre === 'Hepsi' ? await getBooks(params) : await filterBooks(genre)
+      let allBooks = parseBooks(res.data)
+      // Eğer API userId filtresini desteklemiyorsa client-side filtrele
+      if (userId && allBooks.length > 0 && allBooks[0].userId) {
+        allBooks = allBooks.filter(b => b.userId === userId)
+      }
+      setBooks(allBooks)
     } catch {
       setBooks([])
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [userId])
 
   useEffect(() => {
-    const userId = user?._id || localStorage.getItem('userId')
     loadBooks('Hepsi')
 
     if (userId) {
@@ -54,7 +64,7 @@ const HomePage = () => {
     } else {
       setRecLoading(false)
     }
-  }, [loadBooks, user])
+  }, [loadBooks, userId])
 
   const handleFilterClick = (genre) => {
     setActiveFilter(genre)
@@ -67,14 +77,23 @@ const HomePage = () => {
     setActiveFilter('Hepsi')
   }
 
+  // Arama temizlendiğinde normal listeye geri dön
+  const handleClearSearch = () => {
+    setSearchResults(null)
+    setSearchQuery('')
+    loadBooks(activeFilter)
+  }
+
   const displayed = searchResults !== null ? searchResults : books
   const resultLabel = searchResults !== null
     ? `"${searchQuery}" için ${displayed.length} sonuç`
     : `${displayed.length} kitap bulundu`
 
+  const isLibraryEmpty = !loading && searchResults === null && books.length === 0
+
   return (
     <div className="min-h-screen bg-slate-50">
-      <Navbar onSearchResults={handleSearchResults} />
+      <Navbar onSearchResults={handleSearchResults} onClearSearch={handleClearSearch} />
 
       <div className="max-w-7xl mx-auto px-6 py-8 flex gap-8 items-start">
         {/* Sol Panel — Kitap Listesi */}
@@ -93,8 +112,21 @@ const HomePage = () => {
             </button>
           </div>
 
-          {/* Filtre Butonları */}
-          {searchResults === null && (
+          {/* Arama sonuçları varsa geri dönüş butonu */}
+          {searchResults !== null && (
+            <button
+              onClick={handleClearSearch}
+              className="flex items-center gap-2 mb-4 text-sm text-indigo-600 hover:text-indigo-800 font-medium transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
+              </svg>
+              Tüm kitaplara dön
+            </button>
+          )}
+
+          {/* Filtre Butonları (aramada değilse göster) */}
+          {searchResults === null && !isLibraryEmpty && (
             <div className="flex gap-2 overflow-x-auto pb-2 mb-6 scrollbar-hide flex-nowrap">
               {FILTERS.map(f => (
                 <button
@@ -113,30 +145,42 @@ const HomePage = () => {
           )}
 
           {/* Sonuç Sayısı */}
-          <p className="text-sm text-slate-500 mb-4">{!loading && resultLabel}</p>
+          {!loading && !isLibraryEmpty && (
+            <p className="text-sm text-slate-500 mb-4">{resultLabel}</p>
+          )}
 
           {/* Kitap Grid */}
           {loading ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4">
               {Array.from({ length: 8 }).map((_, i) => <SkeletonCard key={i} />)}
             </div>
-          ) : displayed.length === 0 ? (
+          ) : isLibraryEmpty ? (
+            /* ===== BOŞ KÜTÜPHANE DURUMU ===== */
+            <div className="bg-gradient-to-br from-indigo-50 to-white rounded-3xl border border-indigo-100 p-10 text-center max-w-2xl mx-auto my-10">
+              <span className="text-6xl block mb-4">📚</span>
+              <h2 className="text-2xl font-bold text-slate-800 mb-2">Haydi okumaya başla!</h2>
+              <p className="text-slate-500 text-sm max-w-md mx-auto mb-6">
+                Kütüphanen henüz boş. İlk kitabını ekleyerek dijital kütüphaneni oluşturmaya başla.
+              </p>
+              <button
+                onClick={() => setShowModal(true)}
+                className="inline-flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white text-sm font-semibold rounded-xl hover:bg-indigo-700 active:scale-95 transition-all shadow-md"
+              >
+                <span className="text-lg leading-none font-bold">+</span> İlk Kitabını Ekle
+              </button>
+            </div>
+          ) : displayed.length === 0 && searchResults !== null ? (
+            /* ===== ARAMA SONUÇ YOK ===== */
             <div className="flex flex-col items-center justify-center py-20">
-              <span className="text-6xl text-slate-200 mb-4">📚</span>
-              <p className="text-lg font-semibold text-slate-400">
-                {searchResults !== null ? 'Sonuç bulunamadı' : 'Kütüphaneniz boş'}
-              </p>
-              <p className="text-sm text-slate-400 mt-1">
-                {searchResults !== null ? 'Farklı bir arama yapmayı deneyin.' : 'İlk kitabınızı ekleyerek başlayın'}
-              </p>
-              {searchResults === null && (
-                <button
-                  onClick={() => setShowModal(true)}
-                  className="mt-4 flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white text-sm font-semibold rounded-xl hover:bg-indigo-700 active:scale-95 transition-all"
-                >
-                  + Kitap Ekle
-                </button>
-              )}
+              <span className="text-6xl text-slate-200 mb-4">🔍</span>
+              <p className="text-lg font-semibold text-slate-400">Sonuç bulunamadı</p>
+              <p className="text-sm text-slate-400 mt-1">Farklı bir arama yapmayı deneyin.</p>
+              <button
+                onClick={handleClearSearch}
+                className="mt-4 flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white text-sm font-semibold rounded-xl hover:bg-indigo-700 active:scale-95 transition-all"
+              >
+                ← Tüm kitaplara dön
+              </button>
             </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4">

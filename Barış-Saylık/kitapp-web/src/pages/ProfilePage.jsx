@@ -1,9 +1,16 @@
 import { useState, useEffect } from 'react'
 import Navbar from '../components/Navbar'
-import { getUser, updateUser, deleteUser, getReadingAnalysis } from '../services/api'
+import { getUser, updateUser, deleteUser, getReadingAnalysis, getBooks } from '../services/api'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
 import { useNavigate } from 'react-router-dom'
+
+const parseBooks = (data) => {
+  if (Array.isArray(data?.data)) return data.data
+  if (Array.isArray(data?.books)) return data.books
+  if (Array.isArray(data)) return data
+  return []
+}
 
 const ProfilePage = () => {
   const { user, setUser, logout } = useAuth()
@@ -15,6 +22,11 @@ const ProfilePage = () => {
   const [loading, setLoading]       = useState(true)
   const [analysisLoading, setAnalysisLoading] = useState(true)
 
+  // Kullanıcının kendi kitaplarından hesaplanan gerçek istatistikler
+  const [userBookCount, setUserBookCount]     = useState(0)
+  const [userTotalPages, setUserTotalPages]   = useState(0)
+  const [booksLoading, setBooksLoading]       = useState(true)
+
   const [editMode, setEditMode]     = useState(false)
   const [form, setForm]             = useState({})
   const [saving, setSaving]         = useState(false)
@@ -23,6 +35,7 @@ const ProfilePage = () => {
     const userId = user?._id || localStorage.getItem('userId')
     if (!userId) return
 
+    // 1) Profil bilgileri
     getUser(userId)
       .then(res => {
         const p = res.data.user || res.data
@@ -32,10 +45,29 @@ const ProfilePage = () => {
       .catch(() => {})
       .finally(() => setLoading(false))
 
+    // 2) AI Okuma analizi
     getReadingAnalysis(userId)
       .then(res => setAnalysis(res.data))
       .catch(() => setAnalysis(null))
       .finally(() => setAnalysisLoading(false))
+
+    // 3) Kitapları çekip doğru istatistikleri hesapla
+    getBooks({ userId, limit: 200 })
+      .then(res => {
+        let allBooks = parseBooks(res.data)
+        // Client-side userId filtresi (API filtrelemiyorsa)
+        if (allBooks.length > 0 && allBooks[0].userId) {
+          allBooks = allBooks.filter(b => b.userId === userId)
+        }
+        setUserBookCount(allBooks.length)
+        const totalPages = allBooks.reduce((sum, b) => sum + (b.pageCount || 0), 0)
+        setUserTotalPages(totalPages)
+      })
+      .catch(() => {
+        setUserBookCount(0)
+        setUserTotalPages(0)
+      })
+      .finally(() => setBooksLoading(false))
   }, [user])
 
   const handleChange = (e) => setForm(prev => ({ ...prev, [e.target.name]: e.target.value }))
@@ -116,19 +148,19 @@ const ProfilePage = () => {
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className={labelClass}>Ad</label>
-                      <input name="firstName" value={form.firstName} onChange={handleChange} className={inputClass} />
+                      <input id="profile-firstName" name="firstName" value={form.firstName} onChange={handleChange} className={inputClass} />
                     </div>
                     <div>
                       <label className={labelClass}>Soyad</label>
-                      <input name="lastName" value={form.lastName} onChange={handleChange} className={inputClass} />
+                      <input id="profile-lastName" name="lastName" value={form.lastName} onChange={handleChange} className={inputClass} />
                     </div>
                     <div>
                       <label className={labelClass}>E-posta</label>
-                      <input name="email" type="email" value={form.email} onChange={handleChange} className={inputClass} />
+                      <input id="profile-email" name="email" type="email" value={form.email} onChange={handleChange} className={inputClass} />
                     </div>
                     <div>
                       <label className={labelClass}>Telefon</label>
-                      <input name="phone" value={form.phone} onChange={handleChange} className={inputClass} />
+                      <input id="profile-phone" name="phone" value={form.phone} onChange={handleChange} className={inputClass} />
                     </div>
                   </div>
                 )}
@@ -193,7 +225,7 @@ const ProfilePage = () => {
             </div>
           </div>
 
-          {analysisLoading ? (
+          {analysisLoading || booksLoading ? (
             <div className="animate-pulse space-y-4">
               <div className="grid grid-cols-3 gap-4">
                 {[1, 2, 3].map(i => <div key={i} className="h-20 bg-slate-100 rounded-2xl" />)}
@@ -203,11 +235,11 @@ const ProfilePage = () => {
             </div>
           ) : (
             <>
-              {/* İstatistik Grid */}
+              {/* İstatistik Grid — Kitap sayısı ve sayfa sayısı artık doğru hesaplanıyor */}
               <div className="grid grid-cols-3 gap-4 mb-6">
                 {[
-                  { label: 'Toplam Kitap', value: stats.totalRatings || 0 },
-                  { label: 'Toplam Sayfa', value: stats.totalPages ? (stats.totalPages >= 1000 ? `${(stats.totalPages / 1000).toFixed(1)}K` : stats.totalPages) : 0 },
+                  { label: 'Toplam Kitap', value: userBookCount },
+                  { label: 'Toplam Sayfa', value: userTotalPages >= 1000 ? `${(userTotalPages / 1000).toFixed(1)}K` : userTotalPages },
                   { label: 'Favori Tür', value: topGenre, bold: true },
                 ].map(({ label, value, bold }) => (
                   <div key={label} className="bg-gradient-to-br from-indigo-50 to-indigo-100/50 rounded-2xl p-5 text-center">
