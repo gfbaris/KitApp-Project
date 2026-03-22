@@ -14,46 +14,54 @@ const Navbar = ({ onSearchResults }) => {
 
   const handleSearch = async (query) => {
     if (!query) {
-      onSearchResults(null); // Aramayı sıfırla
+      if (onSearchResults) onSearchResults(null);
       return;
     }
     try {
       const res = await searchBooks(query);
-      onSearchResults(res.data.books || res.data || []);
+      if (onSearchResults) onSearchResults(res.data.books || res.data || []);
     } catch {
-      onSearchResults([]);
+      if (onSearchResults) onSearchResults([]);
     }
   };
 
   return (
-    <nav className="bg-[#1e3a5f] text-white px-6 py-3 flex items-center justify-between shadow-lg sticky top-0 z-50">
-      {/* Logo */}
-      <Link
-        to="/home"
-        className="text-xl font-bold flex items-center gap-2 hover:text-[#f59e0b] transition-colors"
-      >
-        📚 KitApp
-      </Link>
+    <nav className="fixed top-0 inset-x-0 z-50 bg-white/70 backdrop-blur-lg border-b border-gray-200/50 shadow-sm transition-all duration-300">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between items-center h-16">
+          
+          {/* Logo */}
+          <Link
+            to="/home"
+            className="flex-shrink-0 flex items-center gap-2 group"
+          >
+            <span className="text-2xl group-hover:scale-110 transition-transform duration-300">📚</span>
+            <span className="text-xl font-extrabold text-[#1e3a5f] tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-[#1e3a5f] to-indigo-600">
+              KitApp
+            </span>
+          </Link>
 
-      {/* Arama */}
-      <div className="flex-1 mx-8 max-w-md">
-        <SearchBar onSearch={handleSearch} />
-      </div>
+          {/* Arama Çubuğu */}
+          <div className="flex-1 max-w-lg mx-8 hidden sm:block">
+            <SearchBar onSearch={handleSearch} />
+          </div>
 
-      {/* Sağ Butonlar */}
-      <div className="flex items-center gap-3">
-        <Link
-          to="/profile"
-          className="text-sm font-medium hover:text-[#f59e0b] transition-colors flex items-center gap-1"
-        >
-          👤 Profil
-        </Link>
-        <button
-          onClick={handleLogout}
-          className="bg-[#f59e0b] hover:bg-[#d97706] text-white text-sm font-medium px-4 py-1.5 rounded-lg transition-colors"
-        >
-          Çıkış Yap
-        </button>
+          {/* Sağ Menü */}
+          <div className="flex items-center gap-4">
+            <Link
+              to="/profile"
+              className="text-sm font-semibold text-gray-600 hover:text-indigo-600 transition-colors flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-indigo-50/50"
+            >
+              <span className="text-lg">👤</span> <span className="hidden md:block">Profil</span>
+            </Link>
+            <button
+              onClick={handleLogout}
+              className="bg-gradient-to-r from-rose-500 to-red-500 hover:from-rose-600 hover:to-red-600 text-white text-sm font-bold px-5 py-2 rounded-xl shadow-[0_4px_14px_0_rgba(225,29,72,0.39)] hover:shadow-[0_6px_20px_rgba(225,29,72,0.23)] hover:-translate-y-0.5 transition-all duration-200"
+            >
+              Çıkış
+            </button>
+          </div>
+        </div>
       </div>
     </nav>
   );

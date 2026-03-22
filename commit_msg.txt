@@ -1,1 +1,1 @@
-fix: CORS sorunu çözüldü
+feat(ui): complete premium redesign with glassmorphism and modern colors
