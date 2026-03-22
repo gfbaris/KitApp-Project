@@ -1,103 +1,129 @@
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import { loginUser } from '../services/api';
-import { useToast } from '../context/ToastContext';
+import { useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
+import { loginUser } from '../services/api'
 
 const LoginPage = () => {
-  const navigate = useNavigate();
-  const { login } = useAuth();
-  const { showToast } = useToast();
+  const navigate = useNavigate()
+  const { login } = useAuth()
 
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [email, setEmail]       = useState('')
+  const [password, setPassword] = useState('')
+  const [showPass, setShowPass] = useState(false)
+  const [loading, setLoading]   = useState(false)
+  const [error, setError]       = useState('')
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!email || !password) return setError('Please fill all fields.');
-
-    setError('');
-    setLoading(true);
-
+    e.preventDefault()
+    setError('')
+    setLoading(true)
     try {
-      const res = await loginUser({ email, password });
-      const { token, user } = res.data;
-      
-      localStorage.setItem('token', token);
-      localStorage.setItem('userId', user._id);
-      login(token, user);
-      
-      showToast('Welcome back', 'success');
-      navigate('/home');
+      const res = await loginUser({ email, password })
+      const { token, user } = res.data
+      login(token, user)
+      navigate('/home')
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to login.');
+      setError(err.response?.data?.error || err.response?.data?.message || 'Giriş başarısız. Bilgilerinizi kontrol edin.')
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
+
+  const inputClass = "w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-slate-800 placeholder:text-slate-400 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+  const labelClass = "block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5"
 
   return (
-    <div className="min-h-screen bg-[#FAFAFA] flex flex-col items-center justify-center p-6 text-slate-900 font-sans">
-      <div className="w-full max-w-[400px]">
-        
-        <div className="flex flex-col items-center justify-center mb-8">
-           <div className="w-10 h-10 bg-slate-900 rounded-lg flex items-center justify-center text-white font-bold text-lg mb-4 shadow-sm">
-             K
-           </div>
-           <h1 className="text-2xl font-semibold tracking-tight text-center">Log in to KitApp</h1>
-           <p className="text-[14px] text-slate-500 mt-2 text-center">Welcome back! Please enter your details.</p>
+    <div className="min-h-screen bg-slate-50 flex">
+      {/* SOL PANEL — Indigo gradient */}
+      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-indigo-600 to-indigo-800 flex-col items-center justify-center p-12">
+        <div className="text-center max-w-sm">
+          <div className="text-8xl mb-6">📚</div>
+          <h1 className="text-4xl font-bold text-white mb-3">KitApp</h1>
+          <p className="text-indigo-200 text-lg leading-relaxed mb-10">
+            Kişisel kütüphanenizi dijital ortama taşıyın.
+          </p>
+          <div className="space-y-3 text-left">
+            {[
+              'Kitaplarınızı organize edin',
+              'AI destekli öneriler alın',
+              'Okuma analizinizi görün',
+            ].map(feature => (
+              <div key={feature} className="flex items-center gap-3 text-indigo-100 text-sm">
+                <span className="w-5 h-5 rounded-full bg-indigo-500/50 flex items-center justify-center text-indigo-200 text-xs flex-shrink-0">✓</span>
+                {feature}
+              </div>
+            ))}
+          </div>
         </div>
+      </div>
 
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-8 w-full">
-          <form onSubmit={handleSubmit} className="space-y-4">
+      {/* SAĞ PANEL — Form */}
+      <div className="flex-1 flex items-center justify-center p-6">
+        <div className="bg-white rounded-3xl shadow-md border border-slate-100 p-10 w-full max-w-md">
+          <h2 className="text-2xl font-bold text-slate-900">Tekrar hoş geldin 👋</h2>
+          <p className="text-slate-500 text-sm mt-1 mb-8">Hesabına giriş yap</p>
+
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div>
+              <label className={labelClass}>E-posta Adresi</label>
+              <input
+                type="email" required value={email}
+                onChange={e => setEmail(e.target.value)}
+                placeholder="ornek@email.com"
+                className={inputClass}
+              />
+            </div>
+
+            <div>
+              <label className={labelClass}>Şifre</label>
+              <div className="relative">
+                <input
+                  type={showPass ? 'text' : 'password'}
+                  required value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className={inputClass + ' pr-12'}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPass(v => !v)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors text-sm"
+                >
+                  {showPass ? '👁' : '👁‍🗨'}
+                </button>
+              </div>
+            </div>
+
             {error && (
-              <div className="bg-rose-50 border border-rose-100/50 rounded-lg p-3 text-[13px] font-medium text-rose-600 flex items-center gap-2">
-                <span className="w-4 h-4 rounded-full bg-rose-200 text-rose-700 flex items-center justify-center text-[10px]">!</span>
-                {error}
+              <div className="bg-red-50 border border-red-200 rounded-xl p-3 flex items-center gap-2 text-sm text-red-600">
+                <span>⚠️</span> {error}
               </div>
             )}
 
-            <div>
-              <label className="block text-[13px] font-medium text-slate-700 mb-1.5">Email</label>
-              <input
-                type="email" required value={email} onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-4 focus:ring-slate-900/5 focus:border-slate-400 font-medium text-slate-900 placeholder:text-slate-400 transition-all text-sm shadow-sm"
-                placeholder="you@example.com"
-              />
-            </div>
-
-            <div>
-              <label className="block text-[13px] font-medium text-slate-700 mb-1.5 flex justify-between">
-                <span>Password</span>
-              </label>
-              <input
-                type="password" required value={password} onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-4 focus:ring-slate-900/5 focus:border-slate-400 font-medium text-slate-900 placeholder:text-slate-400 transition-all text-sm shadow-sm"
-                placeholder="••••••••"
-              />
-            </div>
-
             <button
-              type="submit" disabled={loading}
-              className="w-full py-2 bg-slate-900 text-white rounded-lg font-medium text-[14px] shadow-sm hover:bg-slate-800 transition-colors disabled:opacity-70 flex justify-center items-center mt-2"
+              type="submit"
+              disabled={loading}
+              className="w-full flex items-center justify-center gap-2 px-5 py-3 bg-indigo-600 text-white text-sm font-semibold rounded-xl hover:bg-indigo-700 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : 'Sign In'}
+              {loading ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  Giriş yapılıyor...
+                </>
+              ) : 'Giriş Yap'}
             </button>
           </form>
 
-          <p className="mt-6 text-center text-[13px] text-slate-500">
-             Don't have an account?{' '}
-             <Link to="/register" className="font-semibold text-slate-900 hover:underline">
-               Sign up
-             </Link>
+          <p className="text-sm text-center text-slate-500 mt-6">
+            Hesabın yok mu?{' '}
+            <Link to="/register" className="text-indigo-600 font-semibold hover:underline">
+              Ücretsiz kayıt ol →
+            </Link>
           </p>
         </div>
-        
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default LoginPage;
+export default LoginPage

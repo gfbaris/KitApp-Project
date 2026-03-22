@@ -1,261 +1,196 @@
-import { useState, useEffect, useCallback } from 'react';
-import BookCard from '../components/BookCard';
-import SkeletonCard from '../components/SkeletonCard';
-import { getBooks, filterBooks, addBook, searchBooks } from '../services/api';
-import { useAuth } from '../context/AuthContext';
-import { useToast } from '../context/ToastContext';
+import { useState, useEffect, useCallback } from 'react'
+import Navbar from '../components/Navbar'
+import BookCard from '../components/BookCard'
+import SkeletonCard from '../components/SkeletonCard'
+import BookFormModal from '../components/BookFormModal'
+import { getBooks, filterBooks, getRecommendations } from '../services/api'
+import { useAuth } from '../context/AuthContext'
 
-const GENRES = ['All', 'Roman', 'Bilim Kurgu', 'Tarih', 'Polisiye', 'Şiir', 'Biyografi'];
+const FILTERS = ['Hepsi', 'Roman', 'Bilim Kurgu', 'Tarih', 'Polisiye', 'Şiir', 'Biyografi']
 
-const AddBookModal = ({ onClose, onAdded }) => {
-  const { showToast } = useToast();
-  const [form, setForm] = useState({
-    title: '', author: '', genre: 'Roman',
-    pageCount: '', publishYear: '', description: '', coverImage: '',
-  });
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+// parseBooksFromResponse: API'nin döndürdüğü veriyi her zaman array olarak al
+const parseBooks = (data) => {
+  if (Array.isArray(data?.data)) return data.data
+  if (Array.isArray(data?.books)) return data.books
+  if (Array.isArray(data)) return data
+  return []
+}
 
-  const handleChange = (e) => setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
-    try {
-      const payload = { ...form };
-      if (payload.pageCount) payload.pageCount = Number(payload.pageCount);
-      else delete payload.pageCount;
-      if (payload.publishYear) payload.publishYear = Number(payload.publishYear);
-      else delete payload.publishYear;
-      if (!payload.coverImage) delete payload.coverImage;
-      
-      await addBook(payload);
-      showToast('Book successfully added', 'success');
-      onAdded();
-      onClose();
-    } catch (err) {
-      setError(err.response?.data?.error || 'Error adding book.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-[100] p-4 animate-in fade-in duration-200" onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="bg-white rounded-2xl w-full max-w-lg shadow-[0_20px_60px_-15px_rgba(0,0,0,0.2)] border border-slate-200 transform transition-all max-h-[90vh] flex flex-col">
-        <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50 rounded-t-2xl">
-          <h2 className="text-lg font-semibold text-slate-900">Add New Book</h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 transition-colors">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-          </button>
-        </div>
-
-        <div className="p-6 overflow-y-auto custom-scrollbar">
-          {error && <div className="bg-rose-50 text-rose-600 border border-rose-100 rounded-lg px-4 py-3 mb-5 text-[13px] font-medium flex items-center gap-2"><span>⚠️</span> {error}</div>}
-
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div>
-              <label className="block text-[13px] font-medium text-slate-700 mb-1.5">Book Title *</label>
-              <input name="title" required value={form.title} onChange={handleChange} placeholder="The Great Gatsby" className="w-full border border-slate-200 bg-white shadow-sm rounded-lg px-3 py-2 text-[14px] focus:outline-none focus:ring-2 focus:ring-slate-900/5 focus:border-slate-400 text-slate-900 transition" />
-            </div>
-
-            <div>
-              <label className="block text-[13px] font-medium text-slate-700 mb-1.5">Author *</label>
-              <input name="author" required value={form.author} onChange={handleChange} placeholder="F. Scott Fitzgerald" className="w-full border border-slate-200 bg-white shadow-sm rounded-lg px-3 py-2 text-[14px] focus:outline-none focus:ring-2 focus:ring-slate-900/5 focus:border-slate-400 text-slate-900 transition" />
-            </div>
-
-            <div>
-              <label className="block text-[13px] font-medium text-slate-700 mb-1.5">Genre</label>
-              <select name="genre" value={form.genre} onChange={handleChange} className="w-full border border-slate-200 bg-white shadow-sm rounded-lg px-3 py-2 text-[14px] focus:outline-none focus:ring-2 focus:ring-slate-900/5 focus:border-slate-400 text-slate-900 transition cursor-pointer">
-                {GENRES.filter(g => g !== 'All').map(g => <option key={g} value={g}>{g}</option>)}
-                <option value="Diğer">Diğer</option>
-              </select>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-[13px] font-medium text-slate-700 mb-1.5">Pages</label>
-                <input name="pageCount" type="number" min="1" value={form.pageCount} onChange={handleChange} placeholder="218" className="w-full border border-slate-200 bg-white shadow-sm rounded-lg px-3 py-2 text-[14px] focus:outline-none focus:ring-2 focus:ring-slate-900/5 focus:border-slate-400 text-slate-900 transition" />
-              </div>
-              <div>
-                <label className="block text-[13px] font-medium text-slate-700 mb-1.5">Year</label>
-                <input name="publishYear" type="number" min="1000" max="2099" value={form.publishYear} onChange={handleChange} placeholder="1925" className="w-full border border-slate-200 bg-white shadow-sm rounded-lg px-3 py-2 text-[14px] focus:outline-none focus:ring-2 focus:ring-slate-900/5 focus:border-slate-400 text-slate-900 transition" />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-[13px] font-medium text-slate-700 mb-1.5">Description</label>
-              <textarea name="description" value={form.description} onChange={handleChange} rows={3} placeholder="A brief summary..." className="w-full border border-slate-200 bg-white shadow-sm rounded-lg px-3 py-2 text-[14px] focus:outline-none focus:ring-2 focus:ring-slate-900/5 focus:border-slate-400 text-slate-900 transition resize-none" />
-            </div>
-
-            <div>
-              <label className="block text-[13px] font-medium text-slate-700 mb-1.5">Cover Image URL</label>
-              <input name="coverImage" value={form.coverImage} onChange={handleChange} placeholder="https://..." className="w-full border border-slate-200 bg-white shadow-sm rounded-lg px-3 py-2 text-[14px] focus:outline-none focus:ring-2 focus:ring-slate-900/5 focus:border-slate-400 text-slate-900 transition" />
-            </div>
-
-            <div className="flex gap-3 pt-6">
-              <button type="button" onClick={onClose} className="flex-1 bg-white border border-slate-200 text-slate-700 rounded-lg py-2.5 text-[14px] font-medium hover:bg-slate-50 transition-colors shadow-sm">Cancel</button>
-              <button type="submit" disabled={loading} className="flex-1 bg-slate-900 text-white rounded-lg py-2.5 text-[14px] font-medium shadow-sm hover:bg-slate-800 transition-colors disabled:opacity-70 flex items-center justify-center gap-2">
-                {loading ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : 'Add Book'}
-              </button>
-            </div>
-          </form>
-
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// ─── Ana Sayfa ───────────────────────────────────────
 const HomePage = () => {
-  const { user } = useAuth();
-  const [books, setBooks] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [activeGenre, setActiveGenre] = useState('All');
-  const [showModal, setShowModal] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState(null);
+  const { user } = useAuth()
+  const [books, setBooks]                 = useState([])
+  const [loading, setLoading]             = useState(true)
+  const [activeFilter, setActiveFilter]   = useState('Hepsi')
+  const [showModal, setShowModal]         = useState(false)
+  const [searchResults, setSearchResults] = useState(null)
+  const [searchQuery, setSearchQuery]     = useState('')
+  const [recommendations, setRecommendations] = useState([])
+  const [recLoading, setRecLoading]       = useState(true)
 
-  const loadBooks = useCallback(async (genre = 'All') => {
-    setLoading(true);
+  const loadBooks = useCallback(async (genre = 'Hepsi') => {
+    setLoading(true)
+    setSearchResults(null)
+    setSearchQuery('')
     try {
-      const res = genre && genre !== 'All'
-        ? await filterBooks(genre)
-        : await getBooks();
-      
-      let booksData = [];
-      if (Array.isArray(res.data?.data)) booksData = res.data.data;
-      else if (Array.isArray(res.data?.books)) booksData = res.data.books;
-      else if (Array.isArray(res.data)) booksData = res.data;
-      
-      setBooks(booksData);
+      const res = genre === 'Hepsi' ? await getBooks({ limit: 50 }) : await filterBooks(genre)
+      setBooks(parseBooks(res.data))
     } catch {
-      setBooks([]);
+      setBooks([])
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  }, []);
+  }, [])
 
   useEffect(() => {
-    loadBooks('All');
-  }, [loadBooks]);
+    const userId = user?._id || localStorage.getItem('userId')
+    loadBooks('Hepsi')
 
-  const handleGenreFilter = (genre) => {
-    setActiveGenre(genre);
-    setSearchQuery('');
-    setSearchResults(null);
-    loadBooks(genre);
-  };
-
-  const handleSearch = async (e) => {
-    const query = e.target.value;
-    setSearchQuery(query);
-    if (!query) {
-       setSearchResults(null);
-       return;
+    if (userId) {
+      setRecLoading(true)
+      getRecommendations(userId)
+        .then(res => setRecommendations(res.data?.recommendations || []))
+        .catch(() => setRecommendations([]))
+        .finally(() => setRecLoading(false))
+    } else {
+      setRecLoading(false)
     }
-    setLoading(true);
-    try {
-      const res = await searchBooks(query);
-      let booksData = [];
-      if (Array.isArray(res.data?.data)) booksData = res.data.data;
-      else if (Array.isArray(res.data?.books)) booksData = res.data.books;
-      else if (Array.isArray(res.data)) booksData = res.data;
-      setSearchResults(booksData);
-    } catch {
-      setSearchResults([]);
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [loadBooks, user])
 
-  const displayedBooks = searchResults !== null ? searchResults : books;
+  const handleFilterClick = (genre) => {
+    setActiveFilter(genre)
+    loadBooks(genre)
+  }
+
+  const handleSearchResults = (results, query) => {
+    setSearchResults(results)
+    setSearchQuery(query)
+    setActiveFilter('Hepsi')
+  }
+
+  const displayed = searchResults !== null ? searchResults : books
+  const resultLabel = searchResults !== null
+    ? `"${searchQuery}" için ${displayed.length} sonuç`
+    : `${displayed.length} kitap bulundu`
 
   return (
-    <div className="py-8 px-6 max-w-7xl mx-auto w-full">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-        <div>
-          <h1 className="text-2xl font-semibold text-slate-900 tracking-tight">Library</h1>
-          <p className="text-[14px] text-slate-500 mt-1">Manage and read your collection of {books.length} books.</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <div className="relative">
-             <svg className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-             <input
-               type="text"
-               placeholder="Search books..."
-               value={searchQuery}
-               onChange={handleSearch}
-               className="w-full sm:w-64 pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 text-slate-900 shadow-sm"
-             />
-          </div>
-          <button
-            onClick={() => setShowModal(true)}
-            className="px-4 py-2 bg-slate-900 text-white rounded-lg text-sm font-medium shadow-sm border border-transparent hover:bg-slate-800 transition-colors flex items-center justify-center shrink-0"
-          >
-            Add Book
-          </button>
-        </div>
-      </div>
+    <div className="min-h-screen bg-slate-50">
+      <Navbar onSearchResults={handleSearchResults} />
 
-      <div className="flex items-center gap-2 mb-8 overflow-x-auto pb-2 scrollbar-hide border-b border-slate-200">
-        {GENRES.map(genre => (
-          <button
-            key={genre}
-            onClick={() => handleGenreFilter(genre)}
-            className={`px-4 py-2.5 text-[14px] font-medium border-b-2 transition-colors whitespace-nowrap ${
-              activeGenre === genre
-                ? 'border-slate-900 text-slate-900'
-                : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
-            }`}
-          >
-            {genre}
-          </button>
-        ))}
-      </div>
-
-      {loading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
-          {Array.from({ length: 8 }).map((_, i) => <SkeletonCard key={i} />)}
-        </div>
-      ) : displayedBooks.length === 0 ? (
-        <div className="border border-slate-200 border-dashed rounded-2xl bg-slate-50/50 p-12 text-center flex flex-col items-center justify-center min-h-[400px]">
-          <div className="w-16 h-16 bg-white rounded-2xl shadow-sm border border-slate-100 flex items-center justify-center mb-4">
-             <svg className="w-8 h-8 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
-          </div>
-          <h3 className="text-[15px] font-semibold text-slate-900 mb-1">
-            {searchQuery ? 'No search results' : 'No books found'}
-          </h3>
-          <p className="text-[14px] text-slate-500 max-w-sm mb-6">
-            {searchQuery ? `We couldn't find anything matching "${searchQuery}".` : "You don't have any books in this category yet. Add your first book to get started."}
-          </p>
-          {!searchQuery && (
+      <div className="max-w-7xl mx-auto px-6 py-8 flex gap-8 items-start">
+        {/* Sol Panel — Kitap Listesi */}
+        <div className="flex-1 min-w-0">
+          {/* Başlık Satırı */}
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h1 className="text-2xl font-bold text-slate-900">Kütüphane</h1>
+              <p className="text-sm text-slate-500 mt-0.5">{books.length} eser</p>
+            </div>
             <button
               onClick={() => setShowModal(true)}
-              className="px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg text-sm font-medium shadow-sm hover:bg-slate-50 transition-colors"
+              className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white text-sm font-semibold rounded-xl hover:bg-indigo-700 active:scale-95 transition-all shadow-sm"
             >
-              Add Book
+              <span className="text-lg leading-none font-bold">+</span> Kitap Ekle
             </button>
+          </div>
+
+          {/* Filtre Butonları */}
+          {searchResults === null && (
+            <div className="flex gap-2 overflow-x-auto pb-2 mb-6 scrollbar-hide flex-nowrap">
+              {FILTERS.map(f => (
+                <button
+                  key={f}
+                  onClick={() => handleFilterClick(f)}
+                  className={`px-4 py-1.5 rounded-full text-sm font-medium flex-shrink-0 transition-all ${
+                    activeFilter === f
+                      ? 'bg-indigo-600 text-white'
+                      : 'bg-white text-slate-600 border border-slate-200 hover:border-indigo-300 hover:text-indigo-600'
+                  }`}
+                >
+                  {f}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Sonuç Sayısı */}
+          <p className="text-sm text-slate-500 mb-4">{!loading && resultLabel}</p>
+
+          {/* Kitap Grid */}
+          {loading ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4">
+              {Array.from({ length: 8 }).map((_, i) => <SkeletonCard key={i} />)}
+            </div>
+          ) : displayed.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20">
+              <span className="text-6xl text-slate-200 mb-4">📚</span>
+              <p className="text-lg font-semibold text-slate-400">
+                {searchResults !== null ? 'Sonuç bulunamadı' : 'Kütüphaneniz boş'}
+              </p>
+              <p className="text-sm text-slate-400 mt-1">
+                {searchResults !== null ? 'Farklı bir arama yapmayı deneyin.' : 'İlk kitabınızı ekleyerek başlayın'}
+              </p>
+              {searchResults === null && (
+                <button
+                  onClick={() => setShowModal(true)}
+                  className="mt-4 flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white text-sm font-semibold rounded-xl hover:bg-indigo-700 active:scale-95 transition-all"
+                >
+                  + Kitap Ekle
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4">
+              {displayed.map(book => <BookCard key={book._id} book={book} />)}
+            </div>
           )}
         </div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
-          {displayedBooks.map(book => (
-            <BookCard key={book._id} book={book} />
-          ))}
-        </div>
-      )}
 
-      {showModal && (
-        <AddBookModal
-          onClose={() => setShowModal(false)}
-          onAdded={() => loadBooks(activeGenre)}
-        />
-      )}
+        {/* Sağ Panel — AI Önerileri */}
+        <aside className="hidden lg:block w-72 flex-shrink-0">
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 sticky top-24">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="bg-indigo-50 rounded-lg p-1.5 text-lg">🤖</div>
+              <div>
+                <p className="font-semibold text-slate-800 text-sm">Sana Özel Öneriler</p>
+                <p className="text-xs text-slate-400">Okuma geçmişine göre</p>
+              </div>
+            </div>
+
+            {recLoading ? (
+              <div className="space-y-3">
+                {[1, 2, 3].map(i => (
+                  <div key={i} className="animate-pulse p-3 rounded-xl bg-slate-50">
+                    <div className="h-3 bg-slate-200 rounded w-3/4 mb-2" />
+                    <div className="h-2.5 bg-slate-200 rounded w-1/2" />
+                  </div>
+                ))}
+              </div>
+            ) : recommendations.length === 0 ? (
+              <p className="text-xs text-slate-400 text-center py-4">
+                Daha fazla kitap okuyunca öneriler burada görünür
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {recommendations.map((rec, i) => (
+                  <div key={i} className="p-3 rounded-xl bg-slate-50 hover:bg-indigo-50 cursor-pointer transition-colors">
+                    <p className="text-sm font-semibold text-slate-800">{rec.title}</p>
+                    {rec.author && <p className="text-xs text-slate-500 mt-0.5">{rec.author}</p>}
+                    {rec.reason && <p className="text-xs text-indigo-600 mt-1 italic">{rec.reason}</p>}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </aside>
+      </div>
+
+      <BookFormModal
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        onSuccess={() => loadBooks(activeFilter)}
+      />
     </div>
-  );
-};
+  )
+}
 
-export default HomePage;
+export default HomePage

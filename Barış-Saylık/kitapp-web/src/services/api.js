@@ -1,79 +1,51 @@
-import axios from 'axios';
+import axios from 'axios'
 
-// Merkezi Axios instance
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'https://kitapp-api.vercel.app',
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
+  baseURL: 'https://kitapp-api.vercel.app'
+})
 
-// Request interceptor: Her isteğe otomatik token ekle
-api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      if (config.headers.set) {
-        config.headers.set('Authorization', `Bearer ${token}`);
-      } else {
-        config.headers.Authorization = `Bearer ${token}`;
-      }
-    }
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
+api.interceptors.request.use(config => {
+  const token = localStorage.getItem('token')
+  if (token) config.headers.Authorization = `Bearer ${token}`
+  return config
+})
 
-// Response interceptor: 401 gelirse oturumu temizle ve login'e yönlendir
 api.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    console.error("API İsteğinde Hata:", {
-      status: error.response?.status,
-      data: error.response?.data,
-      url: error.config?.url,
-    });
-
-    if (error.response?.status === 401) {
-      console.warn("401 Unauthorized alındı, çıkış yapılıyor -> URL:", error.config?.url);
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      window.location.href = '/login';
+  res => res,
+  err => {
+    if (err.response?.status === 401) {
+      localStorage.clear()
+      window.location.href = '/login'
     }
-    return Promise.reject(error);
+    return Promise.reject(err)
   }
-);
+)
 
-// ─── Auth ───────────────────────────────────────
-export const registerUser = (data) => api.post('/auth/register', data);
-export const loginUser = (data) => api.post('/auth/login', data);
+// Auth
+export const loginUser    = data => api.post('/auth/login', data)
+export const registerUser = data => api.post('/auth/register', data)
 
-// ─── Kullanıcı ───────────────────────────────────
-export const getUser = (userId) => api.get(`/users/${userId}`);
-export const updateUser = (userId, data) => api.put(`/users/${userId}`, data);
-export const deleteUser = (userId) => api.delete(`/users/${userId}`);
+// Kullanıcı
+export const getUser    = id         => api.get(`/users/${id}`)
+export const updateUser = (id, data) => api.put(`/users/${id}`, data)
+export const deleteUser = id         => api.delete(`/users/${id}`)
 
-// ─── Kitaplar ────────────────────────────────────
-export const getBooks = (params) => api.get('/books', { params });
-export const getBook = (bookId) => api.get(`/books/${bookId}`);
-export const addBook = (data) => api.post('/books', data);
-export const updateBook = (bookId, data) => api.put(`/books/${bookId}`, data);
-export const deleteBook = (bookId) => api.delete(`/books/${bookId}`);
-export const searchBooks = (query) => api.get('/books', { params: { search: query } });
-export const filterBooks = (genre) => api.get('/books', { params: { genre } });
+// Kitaplar
+export const getBooks    = params        => api.get('/books', { params })
+export const getBook     = id            => api.get(`/books/${id}`)
+export const addBook     = data          => api.post('/books', data)
+export const updateBook  = (id, data)   => api.put(`/books/${id}`, data)
+export const deleteBook  = id            => api.delete(`/books/${id}`)
+export const searchBooks = query         => api.get('/books/search', { params: { query } })
+export const filterBooks = genre         => api.get('/books/filter', { params: { genre } })
 
-// ─── Puanlama & Favoriler ────────────────────────
-export const rateBook = (bookId, score) =>
-  api.post('/ratings', { bookId, score });
-export const addFavorite = (bookId) =>
-  api.post('/favorites', { bookId });
+// Puanlama & Favori
+export const rateBook    = (id, score) => api.post(`/books/${id}/ratings`, { score })
+export const addFavorite = id          => api.post(`/users/favorites/${id}`)
 
-// ─── Yapay Zeka ──────────────────────────────────
-export const getRecommendations = (userId) =>
-  api.get(`/ai/recommendations/${userId}`);
-export const summarizeBook = (text, bookId) =>
-  api.post('/ai/summarize', { text, bookId });
-export const getReadingAnalysis = (userId) =>
-  api.get(`/ai/analysis/${userId}`);
+// AI
+export const getRecommendations = id => api.get(`/ai/recommendations/${id}`)
+export const summarizeBook      = (text, bookId) => api.post('/ai/summarize', { text, bookId })
+export const getReadingAnalysis = id => api.get(`/ai/analysis/${id}`)
 
-export default api;
+export default api

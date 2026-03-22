@@ -1,19 +1,21 @@
-import { Navigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { Navigate } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
 
-// Token yoksa /login sayfasına yönlendir
 const PrivateRoute = ({ children }) => {
-  const { isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, loading } = useAuth()
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#1e3a5f]"></div>
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+          <p className="text-sm text-slate-500">Yükleniyor...</p>
+        </div>
       </div>
-    );
+    )
   }
 
-  return isAuthenticated ? children : <Navigate to="/login" replace />;
-};
+  return isAuthenticated ? children : <Navigate to="/login" replace />
+}
 
-export default PrivateRoute;
+export default PrivateRoute

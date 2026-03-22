@@ -1,279 +1,328 @@
-import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { getBook, rateBook, addFavorite, summarizeBook, updateBook, deleteBook } from '../services/api';
-import { useToast } from '../context/ToastContext';
-
-const StarRating = ({ onRate, disabled, initialRating }) => {
-  const [hovered, setHovered] = useState(0);
-  const [selected, setSelected] = useState(initialRating || 0);
-
-  const handleSelect = (star) => { if (!disabled) setSelected(star); };
-  const handleRate = () => { if (selected && !disabled) onRate(selected); };
-
-  return (
-    <div className="flex items-center gap-4">
-      <div className="flex gap-1.5">
-        {[1, 2, 3, 4, 5].map(star => (
-          <button
-            key={star}
-            type="button"
-            disabled={disabled}
-            onMouseEnter={() => !disabled && setHovered(star)}
-            onMouseLeave={() => !disabled && setHovered(0)}
-            onClick={() => handleSelect(star)}
-            className={`text-xl transition-colors ${disabled ? 'cursor-default opacity-60' : 'cursor-pointer hover:scale-110'} ${(star <= (hovered || selected)) ? 'text-amber-400' : 'text-slate-200'} `}
-          >
-            ★
-          </button>
-        ))}
-      </div>
-      <button
-        type="button"
-        onClick={handleRate}
-        disabled={!selected || disabled}
-        className="px-4 py-1.5 bg-slate-100 text-slate-700 text-sm font-medium rounded-md hover:bg-slate-200 disabled:opacity-50 transition-colors"
-      >
-        Submit
-      </button>
-    </div>
-  );
-};
-
-const UpdateModal = ({ book, onClose, onUpdated }) => {
-  const { showToast } = useToast();
-  const [form, setForm] = useState({
-    title: book.title || '', author: book.author || '', genre: book.genre || '',
-    description: book.description || '', coverImage: book.coverImage || '',
-  });
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    try {
-      await updateBook(book._id, form);
-      showToast('Book updated', 'success');
-      onUpdated();
-      onClose();
-    } catch {
-      setError('Update failed.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in" onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg border border-slate-200 flex flex-col">
-        <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-slate-900">Edit Book</h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
-             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-          </button>
-        </div>
-        <div className="p-6">
-          {error && <div className="bg-rose-50 text-rose-600 px-3 py-2 rounded-lg text-sm mb-4">{error}</div>}
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {['title', 'author', 'genre', 'coverImage'].map((field) => (
-              <div key={field}>
-                <label className="block text-[13px] font-medium text-slate-700 mb-1.5 capitalize">{field.replace('Image', ' Image URL')}</label>
-                <input name={field} value={form[field]} onChange={(e) => setForm(prev => ({ ...prev, [e.target.name]: e.target.value }))} className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 text-slate-900" />
-              </div>
-            ))}
-            <div>
-              <label className="block text-[13px] font-medium text-slate-700 mb-1.5">Description</label>
-              <textarea name="description" value={form.description} onChange={(e) => setForm(prev => ({ ...prev, [e.target.name]: e.target.value }))} rows={4} className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 text-slate-900 resize-none" />
-            </div>
-            <div className="flex gap-3 pt-4">
-               <button type="button" onClick={onClose} className="flex-1 px-4 py-2 border border-slate-200 text-slate-700 bg-white hover:bg-slate-50 rounded-lg text-sm font-medium transition">Cancel</button>
-               <button type="submit" disabled={loading} className="flex-1 px-4 py-2 bg-slate-900 text-white hover:bg-slate-800 rounded-lg text-sm font-medium transition flex justify-center items-center">
-                 {loading ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : 'Save Changes'}
-               </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
-  );
-};
+import { useState, useEffect } from 'react'
+import { useParams, useNavigate, Link } from 'react-router-dom'
+import Navbar from '../components/Navbar'
+import BookFormModal from '../components/BookFormModal'
+import { getBook, rateBook, addFavorite, summarizeBook, deleteBook } from '../services/api'
+import { useToast } from '../context/ToastContext'
 
 const BookDetailPage = () => {
-  const { bookId } = useParams();
-  const navigate = useNavigate();
-  const { showToast } = useToast();
+  const { bookId } = useParams()
+  const navigate = useNavigate()
+  const { showToast } = useToast()
 
-  const [book, setBook] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [showUpdateModal, setShowUpdateModal] = useState(false);
+  const [book, setBook]           = useState(null)
+  const [loading, setLoading]     = useState(true)
+  const [showEdit, setShowEdit]   = useState(false)
 
-  const [rateLoading, setRateLoading] = useState(false);
-  const [rateDisabled, setRateDisabled] = useState(false);
-  const [favLoading, setFavLoading] = useState(false);
-  const [favAdded, setFavAdded] = useState(false);
-  const [summary, setSummary] = useState('');
-  const [summaryLoading, setSummaryLoading] = useState(false);
+  // Puanlama
+  const [hoverRating, setHoverRating] = useState(0)
+  const [selectedRating, setSelectedRating] = useState(0)
+  const [rateLoading, setRateLoading] = useState(false)
+  const [rateDisabled, setRateDisabled] = useState(false)
+
+  // Favori
+  const [isFav, setIsFav]         = useState(false)
+  const [favLoading, setFavLoading] = useState(false)
+
+  // AI
+  const [summary, setSummary]           = useState('')
+  const [summaryLoading, setSummaryLoading] = useState(false)
 
   const loadBook = async () => {
     try {
-      const res = await getBook(bookId);
-      setBook(res.data.book || res.data);
+      const res = await getBook(bookId)
+      setBook(res.data.book || res.data)
     } catch {
-      setBook(null);
+      setBook(null)
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
-  useEffect(() => { loadBook(); }, [bookId]);
+  useEffect(() => { loadBook() }, [bookId])
 
-  const handleRate = async (score) => {
-    setRateLoading(true);
+  const handleRate = async () => {
+    if (!selectedRating || rateDisabled) return
+    setRateLoading(true)
     try {
-      await rateBook(bookId, score);
-      showToast('Rating saved', 'success');
-      setRateDisabled(true);
-      loadBook();
+      await rateBook(bookId, selectedRating)
+      showToast('Puanınız kaydedildi! ⭐', 'success')
+      setRateDisabled(true)
+      loadBook()
     } catch (err) {
-      if (err.response?.status === 409) setRateDisabled(true);
-      showToast('Rating failed', 'error');
-    } finally { setRateLoading(false); }
-  };
+      if (err.response?.status === 409) {
+        showToast('Bu kitabı zaten puanladınız', 'error')
+        setRateDisabled(true)
+      } else {
+        showToast('Puanlama başarısız', 'error')
+      }
+    } finally {
+      setRateLoading(false)
+    }
+  }
 
   const handleFavorite = async () => {
-    setFavLoading(true);
+    if (isFav || favLoading) return
+    setFavLoading(true)
     try {
-      await addFavorite(bookId);
-      setFavAdded(true);
-      showToast('Added to favorites', 'success');
+      await addFavorite(bookId)
+      setIsFav(true)
+      showToast('Favorilere eklendi! ❤️', 'success')
     } catch (err) {
-      if (err.response?.status === 409) setFavAdded(true);
-      showToast('Already in favorites', 'info');
-    } finally { setFavLoading(false); }
-  };
+      if (err.response?.status === 409) {
+        setIsFav(true)
+        showToast('Zaten favorilerinizde', 'info')
+      } else {
+        showToast('İşlem başarısız', 'error')
+      }
+    } finally {
+      setFavLoading(false)
+    }
+  }
 
   const handleSummarize = async () => {
-    if (!book?.description) return;
-    setSummaryLoading(true);
+    if (!book?.description?.trim()) {
+      showToast('Kitabın açıklaması yok', 'error')
+      return
+    }
+    setSummaryLoading(true)
     try {
-      const res = await summarizeBook(book.description, bookId);
-      setSummary(res.data.summary || 'Summary unavailable');
-    } catch { showToast('AI processing failed', 'error'); } 
-    finally { setSummaryLoading(false); }
-  };
+      const res = await summarizeBook(book.description, bookId)
+      setSummary(res.data.summary || 'Özet oluşturulamadı.')
+      showToast('AI özeti hazır ✨', 'success')
+    } catch {
+      showToast('AI özeti oluşturulamadı', 'error')
+    } finally {
+      setSummaryLoading(false)
+    }
+  }
 
   const handleDelete = async () => {
-    if (!window.confirm(`Delete "${book?.title}" permanently?`)) return;
+    if (!window.confirm(`"${book?.title}" kalıcı olarak silinecek. Emin misiniz?`)) return
     try {
-      await deleteBook(bookId);
-      navigate('/home');
-    } catch { showToast('Failed to delete', 'error'); }
-  };
+      await deleteBook(bookId)
+      showToast('Kitap silindi', 'info')
+      navigate('/home')
+    } catch {
+      showToast('Silme işlemi başarısız', 'error')
+    }
+  }
 
   if (loading) {
-     return <div className="p-8 text-sm text-slate-500 flex items-center gap-2"><div className="w-4 h-4 border-2 border-slate-400 border-t-transparent animate-spin rounded-full"></div> Loading book details...</div>;
+    return (
+      <div className="min-h-screen bg-slate-50">
+        <Navbar />
+        <div className="max-w-4xl mx-auto px-6 py-8 space-y-6 animate-pulse">
+          <div className="h-4 bg-slate-200 rounded w-48" />
+          <div className="bg-white rounded-3xl border border-slate-100 p-8 flex gap-8">
+            <div className="w-40 h-56 rounded-2xl bg-slate-100 flex-shrink-0" />
+            <div className="flex-1 space-y-4">
+              <div className="h-8 bg-slate-100 rounded w-2/3" />
+              <div className="h-5 bg-slate-100 rounded w-1/3" />
+              <div className="h-20 bg-slate-50 rounded-xl mt-6" />
+            </div>
+          </div>
+        </div>
+      </div>
+    )
   }
+
   if (!book) {
-     return <div className="p-8 text-sm text-slate-500">Book not found.</div>;
+    return (
+      <div className="min-h-screen bg-slate-50">
+        <Navbar />
+        <div className="max-w-4xl mx-auto px-6 py-20 text-center">
+          <p className="text-6xl mb-4">📭</p>
+          <p className="text-lg font-semibold text-slate-700">Kitap bulunamadı</p>
+          <Link to="/home" className="mt-4 inline-block text-indigo-600 font-semibold hover:underline">← Kütüphaneye dön</Link>
+        </div>
+      </div>
+    )
   }
+
+  const gradient = {
+    'Roman': 'from-purple-100 to-purple-200',
+    'Bilim Kurgu': 'from-emerald-100 to-emerald-200',
+    'Tarih': 'from-amber-100 to-amber-200',
+    'Polisiye': 'from-sky-100 to-sky-200',
+  }[book.genre] || 'from-indigo-100 to-indigo-200'
 
   return (
-    <div className="py-8 px-6 max-w-5xl mx-auto w-full">
-      {/* Breadcrumb / Top Bar */}
-      <div className="flex items-center gap-3 text-[13px] font-medium text-slate-500 mb-8 border-b border-slate-200 pb-4">
-        <button onClick={() => navigate('/home')} className="hover:text-slate-900 transition-colors">Library</button>
-        <span className="text-slate-300">/</span>
-        <span className="text-slate-900 truncate max-w-[200px]">{book.title}</span>
-        
-        <div className="ml-auto flex items-center gap-2">
-           <button onClick={() => setShowUpdateModal(true)} className="px-3 py-1.5 border border-slate-200 bg-white text-slate-600 rounded-md hover:bg-slate-50 hover:text-slate-900 transition-colors shadow-sm">Edit</button>
-           <button onClick={handleDelete} className="px-3 py-1.5 border border-rose-200 bg-rose-50 text-rose-600 rounded-md hover:bg-rose-100 transition-colors shadow-sm">Delete</button>
-        </div>
+    <div className="min-h-screen bg-slate-50">
+      <Navbar />
+
+      {/* Breadcrumb */}
+      <div className="max-w-4xl mx-auto px-6 pt-6">
+        <p className="text-sm text-slate-500">
+          <Link to="/home" className="hover:text-indigo-600 transition-colors">← Kütüphane</Link>
+          <span className="mx-2">/</span>
+          <span className="text-slate-700">{book.title}</span>
+        </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-10">
-        
-        {/* Sol Kolon - Detaylar */}
-        <div>
-           <div className="flex flex-col md:flex-row gap-8 items-start mb-10">
-              <div className="w-full md:w-56 flex-shrink-0 bg-slate-50 border border-slate-100 rounded-xl overflow-hidden aspect-[2/3] shadow-sm flex items-center justify-center">
-                 {book.coverImage ? (
-                   <img src={book.coverImage} alt={book.title} className="w-full h-full object-cover" />
-                 ) : (
-                   <span className="text-4xl">📖</span>
-                 )}
-              </div>
-              <div className="flex-1">
-                 {book.genre && <span className="inline-block px-2.5 py-1 bg-slate-100 border border-slate-200 text-slate-700 text-[11px] font-semibold uppercase tracking-wider rounded-md mb-4">{book.genre}</span>}
-                 <h1 className="text-3xl font-semibold text-slate-900 tracking-tight leading-tight mb-2">{book.title}</h1>
-                 <p className="text-lg text-slate-500 mb-6">{book.author}</p>
-                 
-                 <div className="flex gap-6 border-y border-slate-200 py-4 mb-6">
-                    <div>
-                       <p className="text-[11px] uppercase tracking-wider font-semibold text-slate-400 mb-0.5">Rating</p>
-                       <p className="text-sm font-medium text-slate-900">{book.averageRating > 0 ? `${book.averageRating.toFixed(1)} / 5.0` : '—'}</p>
-                    </div>
-                    <div>
-                       <p className="text-[11px] uppercase tracking-wider font-semibold text-slate-400 mb-0.5">Pages</p>
-                       <p className="text-sm font-medium text-slate-900">{book.pageCount || '—'}</p>
-                    </div>
-                    <div>
-                       <p className="text-[11px] uppercase tracking-wider font-semibold text-slate-400 mb-0.5">Published</p>
-                       <p className="text-sm font-medium text-slate-900">{book.publishYear || '—'}</p>
-                    </div>
-                 </div>
-
-                 <div>
-                    <h3 className="text-sm font-semibold text-slate-900 mb-2">Description</h3>
-                    <p className="text-[15px] leading-relaxed text-slate-700">{book.description || <span className="text-slate-400 italic">No description available.</span>}</p>
-                 </div>
-              </div>
-           </div>
-        </div>
-
-        {/* Sağ Kolon - Aksiyon Kartları */}
-        <div className="space-y-4">
-           {/* Kart 1: Rate */}
-           <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
-             <h3 className="text-sm font-semibold text-slate-900 mb-3">Rate Book</h3>
-             <StarRating onRate={handleRate} disabled={rateDisabled || rateLoading} />
-           </div>
-
-           {/* Kart 2: Favorite */}
-           <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex items-center justify-between">
-              <div>
-                 <h3 className="text-sm font-semibold text-slate-900">Collection</h3>
-                 <p className="text-xs text-slate-500 mt-0.5">Add to your favorites</p>
-              </div>
-              <button onClick={handleFavorite} disabled={favAdded || favLoading} className={`p-2.5 rounded-lg border transition-colors ${favAdded ? 'border-rose-200 bg-rose-50 text-rose-500' : 'border-slate-200 bg-white text-slate-400 hover:bg-slate-50 hover:text-rose-500'}`}>
-                 <svg className={`w-5 h-5 ${favAdded ? 'fill-current' : 'fill-none'}`} stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg>
-              </button>
-           </div>
-
-           {/* Kart 3: AI Summary */}
-           <div className="bg-slate-900 rounded-xl p-5 text-white shadow-sm flex flex-col">
-              <div className="flex items-center gap-2 mb-3">
-                 <span className="text-indigo-400">✨</span>
-                 <h3 className="text-sm font-semibold">AI Analysis</h3>
-              </div>
-              {summary ? (
-                 <p className="text-[13px] text-slate-300 leading-relaxed bg-white/5 rounded-lg p-3">{summary}</p>
+      <div className="max-w-4xl mx-auto px-6 py-6 space-y-6">
+        {/* Kart 1 — Kitap Bilgileri */}
+        <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-8">
+          <div className="flex gap-8 items-start">
+            {/* Kapak */}
+            <div className="w-40 h-56 flex-shrink-0 rounded-2xl overflow-hidden shadow-md">
+              {book.coverImage ? (
+                <img src={book.coverImage} alt={book.title} className="w-full h-full object-cover" />
               ) : (
-                 <>
-                   <p className="text-xs text-slate-400 mb-4">Generate an intelligent summary based on the book description.</p>
-                   <button onClick={handleSummarize} disabled={!book.description || summaryLoading} className="w-full py-2 bg-white text-slate-900 text-sm font-semibold rounded-lg hover:bg-slate-100 transition-colors disabled:opacity-50 flex justify-center items-center">
-                      {summaryLoading ? <div className="w-4 h-4 border-2 border-slate-400 border-t-slate-900 rounded-full animate-spin"></div> : 'Generate Summary'}
-                   </button>
-                 </>
+                <div className={`w-full h-full bg-gradient-to-br ${gradient} flex items-center justify-center`}>
+                  <span className="text-5xl">📖</span>
+                </div>
               )}
-           </div>
+            </div>
+
+            {/* Detaylar */}
+            <div className="flex-1 min-w-0">
+              {book.genre && (
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 mb-2">
+                  {book.genre}
+                </span>
+              )}
+              <h1 className="text-3xl font-bold text-slate-900 leading-tight">{book.title}</h1>
+              <p className="text-lg text-slate-500 mt-1">{book.author}</p>
+
+              {/* Meta Grid */}
+              <div className="grid grid-cols-3 gap-4 mt-6">
+                {[
+                  { label: 'Sayfa', value: book.pageCount || '—' },
+                  { label: 'Yıl',   value: book.publishYear || '—' },
+                  { label: 'Ort. Puan', value: book.averageRating > 0 ? `★ ${book.averageRating.toFixed(1)}` : '—', yellow: book.averageRating > 0 },
+                ].map(({ label, value, yellow }) => (
+                  <div key={label} className="bg-slate-50 rounded-xl p-3 text-center">
+                    <p className={`text-lg font-bold ${yellow ? 'text-amber-500' : 'text-slate-800'}`}>{value}</p>
+                    <p className="text-xs text-slate-500 mt-0.5">{label}</p>
+                  </div>
+                ))}
+              </div>
+
+              {book.description && (
+                <p className="text-sm text-slate-600 leading-relaxed mt-4">{book.description}</p>
+              )}
+
+              {/* Aksiyon Butonlar */}
+              <div className="flex justify-end gap-3 mt-6">
+                <button
+                  onClick={() => setShowEdit(true)}
+                  className="flex items-center gap-2 px-5 py-2.5 bg-white text-slate-700 text-sm font-semibold rounded-xl border border-slate-200 hover:bg-slate-50 active:scale-95 transition-all"
+                >
+                  Kitabı Düzenle
+                </button>
+                <button
+                  onClick={handleDelete}
+                  className="flex items-center gap-2 px-5 py-2.5 bg-red-50 text-red-600 text-sm font-semibold rounded-xl border border-red-100 hover:bg-red-100 active:scale-95 transition-all"
+                >
+                  Kitabı Sil
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
 
+        {/* Aksiyon Kartları */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Puan Kartı */}
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 flex flex-col">
+            <h3 className="text-sm font-bold text-slate-800 mb-1 text-center">★ Kitabı Puanla</h3>
+
+            <div className="flex gap-1 justify-center my-4">
+              {[1, 2, 3, 4, 5].map(star => (
+                <button
+                  key={star}
+                  type="button"
+                  disabled={rateDisabled}
+                  onMouseEnter={() => !rateDisabled && setHoverRating(star)}
+                  onMouseLeave={() => !rateDisabled && setHoverRating(0)}
+                  onClick={() => !rateDisabled && setSelectedRating(star)}
+                  className={`text-3xl cursor-pointer transition-transform hover:scale-110 disabled:cursor-not-allowed ${
+                    star <= (hoverRating || selectedRating) ? 'text-amber-400' : 'text-slate-200'
+                  }`}
+                >
+                  ★
+                </button>
+              ))}
+            </div>
+
+            {selectedRating > 0 && (
+              <p className="text-sm text-center text-slate-500 mb-3">{selectedRating}/5 yıldız seçildi</p>
+            )}
+
+            <button
+              onClick={handleRate}
+              disabled={!selectedRating || rateDisabled || rateLoading}
+              className="mt-auto w-full flex items-center justify-center gap-2 px-5 py-2.5 bg-indigo-600 text-white text-sm font-semibold rounded-xl hover:bg-indigo-700 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {rateLoading ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : null}
+              {rateDisabled ? 'Puanlandı ✓' : 'Puanı Kaydet'}
+            </button>
+          </div>
+
+          {/* Favori Kartı */}
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 flex flex-col items-center">
+            <h3 className="text-sm font-bold text-slate-800 mb-1">❤️ Favorilerim</h3>
+
+            <div
+              onClick={handleFavorite}
+              className="text-5xl text-center my-4 cursor-pointer select-none"
+            >
+              {isFav ? '❤️' : '🤍'}
+            </div>
+
+            <p className="text-xs text-slate-500 text-center mb-4">
+              {isFav ? 'Favorilerinizde ✓' : 'Okuma listenize ekleyin'}
+            </p>
+
+            <button
+              onClick={handleFavorite}
+              disabled={isFav || favLoading}
+              className="w-full flex items-center justify-center gap-2 px-5 py-2.5 bg-indigo-600 text-white text-sm font-semibold rounded-xl hover:bg-indigo-700 active:scale-95 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {favLoading ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : null}
+              {isFav ? 'Favorilerde ✓' : 'Favorilere Ekle'}
+            </button>
+          </div>
+
+          {/* AI Özeti Kartı */}
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 flex flex-col">
+            <h3 className="text-sm font-bold text-slate-800 mb-1 text-center">🤖 AI Özeti</h3>
+
+            {summary ? (
+              <div className="bg-indigo-50 rounded-xl p-4 mt-3 flex-1">
+                <p className="text-sm text-indigo-800 leading-relaxed">{summary}</p>
+              </div>
+            ) : (
+              <>
+                <p className="text-xs text-slate-500 text-center mb-4 mt-2 flex-1">
+                  Kitabın açıklamasından yapay zeka özeti oluştur
+                </p>
+                <button
+                  onClick={handleSummarize}
+                  disabled={summaryLoading || !book.description}
+                  className="w-full flex items-center justify-center gap-2 px-5 py-2.5 bg-amber-400 text-white text-sm font-semibold rounded-xl hover:bg-amber-500 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {summaryLoading ? (
+                    <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Gemini analiz ediyor...</>
+                  ) : 'Özet Oluştur'}
+                </button>
+              </>
+            )}
+          </div>
+        </div>
       </div>
 
-      {showUpdateModal && <UpdateModal book={book} onClose={() => setShowUpdateModal(false)} onUpdated={loadBook} />}
+      {showEdit && (
+        <BookFormModal
+          isOpen={showEdit}
+          editBook={book}
+          onClose={() => setShowEdit(false)}
+          onSuccess={loadBook}
+        />
+      )}
     </div>
-  );
-};
+  )
+}
 
-export default BookDetailPage;
+export default BookDetailPage

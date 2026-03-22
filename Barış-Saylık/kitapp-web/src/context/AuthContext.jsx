@@ -1,57 +1,46 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect } from 'react'
 
-const AuthContext = createContext(null);
+const AuthContext = createContext(null)
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [token, setToken] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState(null)
+  const [token, setToken] = useState(null)
+  const [loading, setLoading] = useState(true)
 
-  // Uygulama başladığında localStorage'dan token ve user yükle
   useEffect(() => {
-    const savedToken = localStorage.getItem('token');
-    const savedUser = localStorage.getItem('user');
+    const savedToken = localStorage.getItem('token')
+    const savedUser = localStorage.getItem('user')
     if (savedToken && savedUser) {
-      setToken(savedToken);
-      try {
-        setUser(JSON.parse(savedUser));
-      } catch {
-        setUser(null);
-      }
+      setToken(savedToken)
+      setUser(JSON.parse(savedUser))
     }
-    setLoading(false);
-  }, []);
+    setLoading(false)
+  }, [])
 
-  // Giriş: token ve user'ı kaydet
-  const login = (newToken, userData) => {
-    localStorage.setItem('token', newToken);
-    localStorage.setItem('user', JSON.stringify(userData));
-    setToken(newToken);
-    setUser(userData);
-  };
+  const login = (newToken, newUser) => {
+    localStorage.setItem('token', newToken)
+    localStorage.setItem('user', JSON.stringify(newUser))
+    localStorage.setItem('userId', newUser._id)
+    setToken(newToken)
+    setUser(newUser)
+  }
 
-  // Çıkış: her şeyi temizle
   const logout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    setToken(null);
-    setUser(null);
-  };
-
-  const isAuthenticated = !!token;
+    localStorage.clear()
+    setToken(null)
+    setUser(null)
+  }
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, isAuthenticated, loading, setUser }}>
+    <AuthContext.Provider value={{
+      user, setUser, token, loading,
+      isAuthenticated: !!token,
+      login, logout
+    }}>
       {children}
     </AuthContext.Provider>
-  );
-};
+  )
+}
 
-// Kullanım kolaylığı için hook
-export const useAuth = () => {
-  const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error('useAuth, AuthProvider içinde kullanılmalıdır');
-  return ctx;
-};
-
-export default AuthContext;
+export const useAuth = () => useContext(AuthContext)
+export default AuthContext
