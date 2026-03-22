@@ -13,7 +13,11 @@ api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
     if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+      if (config.headers.set) {
+        config.headers.set('Authorization', `Bearer ${token}`);
+      } else {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
     }
     return config;
   },
@@ -24,7 +28,14 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    console.error("API İsteğinde Hata:", {
+      status: error.response?.status,
+      data: error.response?.data,
+      url: error.config?.url,
+    });
+
     if (error.response?.status === 401) {
+      console.warn("401 Unauthorized alındı, çıkış yapılıyor -> URL:", error.config?.url);
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       window.location.href = '/login';

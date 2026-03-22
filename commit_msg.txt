@@ -1,1 +1,1 @@
-feat: KitApp web frontend yeniden tasarlandı - Baris Saylik
+fix: api isteklerinde 401 hatasını yakalamak icin hata kayitlari (log) ve strict token seti eklendi
