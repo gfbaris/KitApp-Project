@@ -1,1 +1,1 @@
-fix: displayedBooks.map is not a function hatasi cozuldu (API yaniti dogru ayristirildi)
+feat: Tum uygulama Premium 3D Glassmorphism tasarima gecirildi ve kitap ekleme sayfasi hatasi giderildi

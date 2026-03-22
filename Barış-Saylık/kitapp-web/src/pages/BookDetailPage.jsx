@@ -5,9 +5,9 @@ import { getBook, rateBook, addFavorite, summarizeBook, updateBook, deleteBook }
 import { useToast } from '../context/ToastContext';
 
 // ─── Yıldız Puanlama ─────────────────────────────────
-const StarRating = ({ onRate, disabled }) => {
+const StarRating = ({ onRate, disabled, initialRating }) => {
   const [hovered, setHovered] = useState(0);
-  const [selected, setSelected] = useState(0);
+  const [selected, setSelected] = useState(initialRating || 0);
 
   const handleSelect = (star) => {
     if (disabled) return;
@@ -21,31 +21,31 @@ const StarRating = ({ onRate, disabled }) => {
 
   return (
     <div>
-      <div className="flex gap-1 mb-3">
-        {[1, 2, 3, 4, 5].map(star => (
-          <button
-            key={star}
-            type="button"
-            disabled={disabled}
-            onMouseEnter={() => !disabled && setHovered(star)}
-            onMouseLeave={() => !disabled && setHovered(0)}
-            onClick={() => handleSelect(star)}
-            className={`text-2xl transition-all duration-150 ${disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer hover:scale-110'} ${star <= (hovered || selected) ? 'text-amber-400' : 'text-gray-200'}`}
-          >
-            ★
-          </button>
-        ))}
+      <div className="flex gap-1.5 mb-4 justify-center sm:justify-start">
+        {[1, 2, 3, 4, 5].map(star => {
+          const isActive = star <= (hovered || selected);
+          return (
+            <button
+              key={star}
+              type="button"
+              disabled={disabled}
+              onMouseEnter={() => !disabled && setHovered(star)}
+              onMouseLeave={() => !disabled && setHovered(0)}
+              onClick={() => handleSelect(star)}
+              className={`text-3xl transition-all duration-300 drop-shadow-sm ${disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer hover:scale-125 hover:-translate-y-1'} ${isActive ? 'text-amber-400 drop-shadow-[0_2px_10px_rgba(251,191,36,0.5)]' : 'text-slate-200'} `}
+            >
+              ★
+            </button>
+          );
+        })}
       </div>
-      {selected > 0 && (
-        <p className="text-sm text-gray-500 mb-3">Seçilen: {selected} yıldız</p>
-      )}
       <button
         type="button"
         onClick={handleRate}
         disabled={!selected || disabled}
-        className="w-full px-4 py-2.5 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full h-[46px] bg-gradient-to-r from-amber-400 to-orange-500 text-white rounded-xl font-bold shadow-lg shadow-amber-500/20 hover:shadow-amber-500/40 hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:shadow-none"
       >
-        Puanı Kaydet
+        Puanı Gönder
       </button>
     </div>
   );
@@ -82,53 +82,36 @@ const UpdateModal = ({ book, onClose, onUpdated }) => {
   };
 
   return (
-    <div
-      className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-      onClick={(e) => e.target === e.currentTarget && onClose()}
-    >
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 p-8 max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="bg-white rounded-[2rem] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3)] w-full max-w-md mx-4 p-8 max-h-[90vh] overflow-y-auto custom-scrollbar flex flex-col">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-bold text-gray-900">Kitabı Düzenle</h2>
-          <button onClick={onClose} className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 text-sm transition-colors">✕</button>
+          <h2 className="text-xl font-black text-slate-800">Eseri Düzenle</h2>
+          <button onClick={onClose} className="w-8 h-8 rounded-full bg-slate-50 hover:bg-rose-50 hover:text-rose-500 flex items-center justify-center text-slate-400 text-sm transition-colors">✕</button>
         </div>
 
-        {error && (
-          <div className="bg-red-50 border border-red-200 rounded-xl p-3 mb-4 text-sm text-red-600 flex items-center gap-2">
-            <span>⚠️</span> {error}
-          </div>
-        )}
+        {error && <div className="bg-rose-50 border border-rose-100 rounded-xl p-3 mb-4 text-sm font-bold text-rose-600 flex items-center gap-2"><span>⚠️</span> {error}</div>}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {[
-            { name: 'title', label: 'Başlık', placeholder: 'Kitap adı' },
+            { name: 'title', label: 'Eser Adı', placeholder: 'Kitap adı' },
             { name: 'author', label: 'Yazar', placeholder: 'Yazar adı' },
             { name: 'genre', label: 'Tür', placeholder: 'Roman, Şiir...' },
             { name: 'coverImage', label: 'Kapak URL', placeholder: 'https://...' },
           ].map(({ name, label, placeholder }) => (
             <div key={name}>
-              <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">{label}</label>
-              <input
-                name={name} value={form[name]} onChange={handleChange} placeholder={placeholder}
-                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-800 bg-white placeholder:text-gray-400 text-sm transition-all"
-              />
+              <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest mb-1.5 ml-1">{label}</label>
+              <input name={name} value={form[name]} onChange={handleChange} placeholder={placeholder} className="w-full px-4 py-3.5 rounded-xl border border-slate-200 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-medium text-slate-700 transition-all text-sm" />
             </div>
           ))}
           <div>
-            <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Açıklama</label>
-            <textarea
-              name="description" value={form.description} onChange={handleChange} rows={4}
-              className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-800 bg-white placeholder:text-gray-400 text-sm transition-all resize-none"
-            />
+            <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Açıklama</label>
+            <textarea name="description" value={form.description} onChange={handleChange} rows={4} className="w-full px-4 py-3.5 rounded-xl border border-slate-200 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-medium text-slate-700 transition-all text-sm resize-none" />
           </div>
 
-          <div className="flex justify-end gap-3 pt-2">
-            <button type="button" onClick={onClose}
-              className="px-6 py-3 bg-white text-gray-700 rounded-xl font-medium border border-gray-200 hover:bg-gray-50 transition-colors duration-200">
-              Vazgeç
-            </button>
-            <button type="submit" disabled={loading}
-              className="px-6 py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
-              {loading ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>Kaydediliyor...</> : 'Kaydet'}
+          <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
+            <button type="button" onClick={onClose} className="px-6 py-3.5 bg-white text-slate-600 border-2 border-slate-200 rounded-xl font-bold hover:bg-slate-50 hover:border-slate-300 transition-all duration-200 text-sm">Vazgeç</button>
+            <button type="submit" disabled={loading} className="px-6 py-3.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-bold shadow-lg shadow-indigo-500/30 hover:shadow-indigo-500/50 hover:-translate-y-0.5 transition-all text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
+              {loading ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>Kaydediliyor...</> : 'Değişiklikleri Kaydet'}
             </button>
           </div>
         </form>
@@ -148,13 +131,11 @@ const BookDetailPage = () => {
   const [showMore, setShowMore] = useState(false);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
 
-  // Kart 1: Puan
+  // Aksiyonlar
   const [rateLoading, setRateLoading] = useState(false);
   const [rateDisabled, setRateDisabled] = useState(false);
-  // Kart 2: Favori
   const [favLoading, setFavLoading] = useState(false);
-  const [favAdded, setFavAdded] = useState(false);
-  // Kart 3: AI Özet
+  const [favAdded, setFavAdded] = useState(false); // Başlangıçta false, favori kontrol endpoint'i yok
   const [summary, setSummary] = useState('');
   const [summaryLoading, setSummaryLoading] = useState(false);
 
@@ -179,9 +160,7 @@ const BookDetailPage = () => {
       setRateDisabled(true);
       loadBook();
     } catch (err) {
-      const msg = err.response?.status === 409
-        ? 'Bu kitabı zaten puanladınız.'
-        : (err.response?.data?.error || 'Puanlama başarısız.');
+      const msg = err.response?.status === 409 ? 'Bu kitabı zaten puanladınız.' : (err.response?.data?.error || 'Puanlama başarısız.');
       showToast(msg, 'error');
       if (err.response?.status === 409) setRateDisabled(true);
     } finally {
@@ -195,11 +174,9 @@ const BookDetailPage = () => {
     try {
       await addFavorite(bookId);
       setFavAdded(true);
-      showToast('Favorilere eklendi!', 'success');
+      showToast('Koleksiyonunuza eklendi ❤️', 'success');
     } catch (err) {
-      const msg = err.response?.status === 409
-        ? 'Zaten favorilerinizde.'
-        : (err.response?.data?.error || 'Favoriye eklenemedi.');
+      const msg = err.response?.status === 409 ? 'Zaten koleksiyonunuzda.' : (err.response?.data?.error || 'Favoriye eklenemedi.');
       showToast(msg, 'error');
       if (err.response?.status === 409) setFavAdded(true);
     } finally {
@@ -214,9 +191,9 @@ const BookDetailPage = () => {
     try {
       const res = await summarizeBook(book.description, bookId);
       setSummary(res.data.summary || 'Özet oluşturulamadı.');
-      showToast('AI özeti oluşturuldu!', 'success');
+      showToast('Yapay Zeka özeti hazır! ✨', 'success');
     } catch {
-      setSummary('Özet oluşturulurken bir hata oluştu.');
+      setSummary('Özet oluşturulurken asistanımız bir pürüzle karşılaştı.');
       showToast('AI özeti alınamadı.', 'error');
     } finally {
       setSummaryLoading(false);
@@ -224,33 +201,30 @@ const BookDetailPage = () => {
   };
 
   const handleDelete = async () => {
-    if (!window.confirm(`"${book?.title}" kitabını silmek istediğinizden emin misiniz?`)) return;
+    if (!window.confirm(`"${book?.title}" eserini kalıcı olarak silmek istediğinizden emin misiniz?`)) return;
     try {
       await deleteBook(bookId);
-      showToast('Kitap silindi.', 'info');
+      showToast('Eser başarıyla silindi.', 'info');
       navigate('/home');
     } catch {
-      showToast('Kitap silinemedi.', 'error');
+      showToast('Eser silinemedi.', 'error');
     }
   };
 
-  // ─── Yükleniyor ───
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-[#f8fafc] pt-24 pb-12">
         <Navbar />
-        <div className="max-w-4xl mx-auto px-6 py-8 animate-pulse">
-          <div className="h-4 bg-gray-100 rounded w-24 mb-6"></div>
-          <div className="lg:flex gap-8">
-            <div className="w-48 h-64 bg-gray-100 rounded-2xl flex-shrink-0"></div>
-            <div className="flex-1 space-y-4 mt-6 lg:mt-0">
-              <div className="h-4 bg-gray-100 rounded w-1/4"></div>
-              <div className="h-8 bg-gray-100 rounded w-3/4"></div>
-              <div className="h-5 bg-gray-100 rounded w-1/2"></div>
-              <div className="h-3 bg-gray-100 rounded w-full"></div>
-              <div className="h-3 bg-gray-100 rounded w-5/6"></div>
-            </div>
-          </div>
+        <div className="max-w-5xl mx-auto px-6 animate-pulse">
+           <div className="h-4 bg-slate-200 rounded-full w-32 mb-8"></div>
+           <div className="lg:flex gap-10">
+             <div className="w-56 h-80 bg-slate-200 rounded-[2rem] flex-shrink-0"></div>
+             <div className="flex-1 space-y-4 py-4">
+                <div className="h-10 bg-slate-200 rounded-full w-2/3"></div>
+                <div className="h-6 bg-slate-200 rounded-full w-1/3"></div>
+                <div className="h-24 bg-slate-100 rounded-2xl w-full mt-6"></div>
+             </div>
+           </div>
         </div>
       </div>
     );
@@ -258,13 +232,14 @@ const BookDetailPage = () => {
 
   if (!book) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-[#f8fafc] pt-24">
         <Navbar />
-        <div className="max-w-4xl mx-auto px-6 py-20 text-center">
-          <span className="text-6xl text-gray-200 block mb-4">📭</span>
-          <p className="text-lg font-medium text-gray-500">Kitap bulunamadı.</p>
-          <button onClick={() => navigate('/home')} className="mt-4 text-indigo-600 hover:underline text-sm font-medium">
-            ← Kütüphaneye Dön
+        <div className="max-w-xl mx-auto px-6 py-20 text-center flex flex-col items-center">
+          <div className="w-24 h-24 bg-slate-100 rounded-full flex items-center justify-center text-4xl mb-6 shadow-inner text-red-300">💔</div>
+          <h2 className="text-2xl font-black text-slate-800">Eser Bulunamadı</h2>
+          <p className="text-slate-500 font-medium mt-2">Aradığınız kitap sayfaları arasında kayboldu veya kütüphaneden kaldırıldı.</p>
+          <button onClick={() => navigate('/home')} className="mt-8 px-8 py-3.5 bg-slate-800 text-white rounded-xl font-bold hover:bg-indigo-600 transition-colors shadow-lg">
+            Kütüphaneye Dön
           </button>
         </div>
       </div>
@@ -272,139 +247,151 @@ const BookDetailPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-[#f8fafc] pt-24 pb-12">
+      {/* Decorative Blur */}
+      <div className="fixed top-0 left-0 w-full h-[500px] overflow-hidden pointer-events-none z-0 opacity-50">
+        <div className="absolute top-[-20%] left-[20%] w-[60%] h-[100%] rounded-full bg-indigo-500/5 blur-[120px]"></div>
+      </div>
+
       <Navbar />
-      <div className="max-w-4xl mx-auto px-6 py-8">
+      <div className="max-w-5xl mx-auto px-6 relative z-10">
+        
+        {/* Üst Kısım: Geri / Actions */}
+        <div className="flex items-center justify-between mb-8">
+          <button onClick={() => navigate('/home')} className="text-sm font-bold text-slate-400 hover:text-indigo-600 transition-colors flex items-center gap-2 bg-white px-4 py-2 rounded-xl shadow-sm border border-slate-100/50">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+            Kütüphaneye Dön
+          </button>
 
-        {/* Geri Butonu */}
-        <button
-          onClick={() => navigate('/home')}
-          className="text-sm font-medium text-gray-500 hover:text-indigo-600 transition-colors flex items-center gap-1 mb-6"
-        >
-          ← Kütüphaneye Dön
-        </button>
-
-        {/* Üst Bölüm */}
-        <div className="lg:flex gap-8 bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-6">
-          {/* Kapak */}
-          <div className="w-full lg:w-48 h-64 flex-shrink-0 mb-6 lg:mb-0">
-            {book.coverImage ? (
-              <img
-                src={book.coverImage}
-                alt={book.title}
-                className="w-full h-full object-cover rounded-2xl shadow-lg"
-              />
-            ) : (
-              <div className="w-full h-full rounded-2xl bg-gradient-to-br from-indigo-400 to-indigo-600 flex items-center justify-center shadow-lg">
-                <span className="text-5xl text-white/60">📖</span>
-              </div>
-            )}
+          <div className="flex items-center gap-2">
+            <button onClick={() => setShowUpdateModal(true)} className="p-2.5 bg-white text-indigo-600 rounded-xl font-bold hover:bg-indigo-50 transition-colors border border-slate-100 shadow-sm" title="Eseri Düzenle">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+            </button>
+            <button onClick={handleDelete} className="p-2.5 bg-white text-rose-500 rounded-xl font-bold hover:bg-rose-50 transition-colors border border-slate-100 shadow-sm" title="Eseri Sil">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+            </button>
           </div>
+        </div>
 
-          {/* Bilgiler */}
-          <div className="flex-1 min-w-0">
-            {book.genre && (
-              <span className="inline-block bg-indigo-50 text-indigo-600 text-xs font-medium px-3 py-1 rounded-full mb-3">
-                {book.genre}
-              </span>
-            )}
-            <h1 className="text-3xl font-bold text-gray-900 leading-tight">{book.title}</h1>
-            <p className="text-lg text-gray-500 mt-1">{book.author}</p>
+        {/* Ana Detay Başlığı */}
+        <div className="bg-white rounded-[2.5rem] shadow-[0_10px_40px_-10px_rgba(0,0,0,0.05)] border border-slate-100/60 p-8 md:p-10 mb-8 relative overflow-hidden">
+          {/* İç Dekoratif Blur */}
+          <div className="absolute -top-32 -right-32 w-64 h-64 bg-indigo-500/10 rounded-full blur-[80px]"></div>
 
-            {/* Meta bilgiler */}
-            <div className="flex flex-wrap gap-6 mt-4 text-sm text-gray-500">
-              {book.pageCount && <span>📄 {book.pageCount} sayfa</span>}
-              {book.publishYear && <span>📅 {book.publishYear}</span>}
-              {book.averageRating > 0 && <span>⭐ {book.averageRating.toFixed(1)} ortalama</span>}
+          <div className="flex flex-col md:flex-row gap-10 relative z-10">
+            {/* Kapak Görseli */}
+            <div className="w-full md:w-64 h-auto aspect-[2/3] flex-shrink-0 cursor-pointer group">
+              <div className="w-full h-full rounded-[2rem] bg-gradient-to-br from-indigo-400 to-purple-500 shadow-xl overflow-hidden relative">
+                {book.coverImage ? (
+                  <img src={book.coverImage} alt={book.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                ) : (
+                  <div className="absolute inset-0 flex items-center justify-center text-white/40"><span className="text-8xl drop-shadow-md">📖</span></div>
+                )}
+                <div className="absolute inset-0 ring-1 ring-inset ring-black/10 rounded-[2rem]"></div>
+              </div>
             </div>
 
-            {/* Açıklama */}
-            {book.description && (
-              <div className="mt-4">
-                <p className={`text-sm text-gray-600 leading-relaxed ${showMore ? '' : 'line-clamp-4'}`}>
-                  {book.description}
-                </p>
-                {book.description.length > 200 && (
-                  <button
-                    onClick={() => setShowMore(v => !v)}
-                    className="text-sm text-indigo-600 font-medium mt-1 hover:text-indigo-700 transition-colors"
-                  >
-                    {showMore ? 'Daha az göster' : 'Devamını gör'}
-                  </button>
-                )}
-              </div>
-            )}
+            {/* Bilgiler Tablosu */}
+            <div className="flex-1 flex flex-col justify-center">
+              {book.genre && (
+                <div className="mb-4">
+                  <span className="inline-flex items-center justify-center bg-indigo-50 text-indigo-600 text-[11px] font-black uppercase tracking-widest px-4 py-2 rounded-full shadow-sm">
+                    {book.genre}
+                  </span>
+                </div>
+              )}
+              <h1 className="text-4xl md:text-5xl font-black text-slate-800 leading-tight tracking-tight mb-2">{book.title}</h1>
+              <p className="text-xl md:text-2xl text-slate-500 font-medium mb-8 bg-clip-text text-transparent bg-gradient-to-r from-slate-500 to-slate-400">{book.author}</p>
 
-            {/* İşlemler */}
-            <div className="flex flex-wrap gap-3 mt-6 pt-4 border-t border-gray-50">
-              <button
-                onClick={() => setShowUpdateModal(true)}
-                className="px-6 py-3 bg-white text-gray-700 rounded-xl font-medium border border-gray-200 hover:bg-gray-50 transition-colors duration-200 text-sm"
-              >
-                ✏️ Kitabı Düzenle
-              </button>
-              <button
-                onClick={handleDelete}
-                className="px-6 py-3 bg-red-50 text-red-600 rounded-xl font-medium border border-red-100 hover:bg-red-100 transition-colors duration-200 text-sm"
-              >
-                🗑️ Kitabı Sil
-              </button>
+              {/* Stat Grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+                {[
+                  { label: 'Sayfa', value: book.pageCount, icon: '📄' },
+                  { label: 'Yıl', value: book.publishYear, icon: '📅' },
+                  { label: 'ISBN', value: book.isbn, icon: '🔢' },
+                  { label: 'Değerlendirme', value: book.averageRating > 0 ? `${book.averageRating.toFixed(1)} ⭐` : 'Yok', icon: '🏆' }
+                ].map((stat, idx) => (
+                  <div key={idx} className="bg-slate-50 rounded-2xl p-4 border border-slate-100 flex flex-col justify-between">
+                    <span className="text-lg mb-2">{stat.icon}</span>
+                    <div>
+                      <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest">{stat.label}</p>
+                      <p className="text-sm font-bold text-slate-700 mt-0.5 truncate">{stat.value || '—'}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Açıklama Okuma */}
+              {book.description && (
+                <div className="mt-auto">
+                  <p className={`text-[15px] font-medium text-slate-600 leading-relaxed ${showMore ? '' : 'line-clamp-3'}`}>
+                    {book.description}
+                  </p>
+                  {book.description.length > 250 && (
+                    <button onClick={() => setShowMore(v => !v)} className="text-sm font-bold text-indigo-600 mt-2 hover:text-indigo-500 transition-colors uppercase tracking-wide">
+                      {showMore ? 'Daha Az Göster' : 'Tümünü Oku'}
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>
 
-        {/* 3 Kart Bölümü */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Kart 1: Puan Ver */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow duration-200">
-            <h3 className="text-base font-semibold text-gray-800 mb-4">⭐ Kitabı Puanla</h3>
+        {/* Aksiyon Kartları */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Puan Kartı */}
+          <div className="bg-white rounded-[2rem] shadow-sm border border-slate-100/60 p-8 hover:shadow-md transition-all">
+            <h3 className="text-lg font-black text-slate-800 mb-6 flex items-center gap-2"><div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center text-amber-500 shadow-inner">⭐</div> Puanla</h3>
             <StarRating onRate={handleRate} disabled={rateDisabled || rateLoading} />
           </div>
 
-          {/* Kart 2: Favori */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow duration-200">
-            <h3 className="text-base font-semibold text-gray-800 mb-4">❤️ Favoriler</h3>
-            <div className="flex flex-col items-center">
-              <button
-                onClick={handleFavorite}
-                disabled={favAdded || favLoading}
-                className={`text-5xl mb-4 transition-all duration-300 ${favAdded ? 'grayscale-0' : 'grayscale'} hover:scale-110 disabled:cursor-default`}
-              >
-                {favAdded ? '❤️' : '🤍'}
-              </button>
-              <button
-                onClick={handleFavorite}
-                disabled={favAdded || favLoading}
-                className="w-full px-4 py-2.5 rounded-xl font-medium text-sm transition-colors duration-200 bg-pink-50 text-pink-600 border border-pink-100 hover:bg-pink-100 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-              >
-                {favLoading ? (
-                  <><div className="w-4 h-4 border-2 border-pink-300 border-t-pink-600 rounded-full animate-spin"></div> Ekleniyor...</>
-                ) : favAdded ? '✓ Favorilerde' : 'Favorilere Ekle'}
-              </button>
-            </div>
+          {/* Favori Kartı */}
+          <div className="bg-white rounded-[2rem] shadow-sm border border-slate-100/60 p-8 hover:shadow-md transition-all flex flex-col">
+             <h3 className="text-lg font-black text-slate-800 mb-6 flex items-center gap-2"><div className="w-8 h-8 rounded-lg bg-rose-50 flex items-center justify-center text-rose-500 shadow-inner">❤️</div> Koleksiyon</h3>
+             <div className="flex-1 flex flex-col items-center justify-center">
+                <button
+                  onClick={handleFavorite}
+                  disabled={favAdded || favLoading}
+                  className={`relative group w-20 h-20 rounded-full flex items-center justify-center transition-all duration-500 ${favAdded ? 'bg-rose-50 text-rose-500' : 'bg-slate-50 text-slate-300 hover:bg-rose-50 hover:text-rose-400'} disabled:cursor-not-allowed`}
+                >
+                  <svg className={`w-10 h-10 transition-transform duration-500 ${favAdded ? 'fill-current scale-110' : 'fill-none stroke-current stroke-2 group-hover:scale-110'}`} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg>
+                  {favLoading && <div className="absolute inset-0 rounded-full border-4 border-rose-100 border-t-rose-500 animate-spin"></div>}
+                </button>
+                <p className={`text-sm font-bold mt-4 uppercase tracking-wider ${favAdded ? 'text-rose-500' : 'text-slate-400'}`}>
+                  {favAdded ? 'Koleksiyonda' : 'Koleksiyona Ekle'}
+                </p>
+             </div>
           </div>
 
-          {/* Kart 3: AI Özeti */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow duration-200 flex flex-col">
-            <h3 className="text-base font-semibold text-gray-800 mb-4">🤖 AI Özeti</h3>
-            {summary ? (
-              <p className="text-sm text-gray-600 leading-relaxed flex-1">{summary}</p>
-            ) : (
-              <button
-                onClick={handleSummarize}
-                disabled={!book.description || summaryLoading}
-                className="w-full px-4 py-2.5 bg-amber-500 text-white rounded-xl font-medium hover:bg-amber-600 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-              >
-                {summaryLoading ? (
-                  <><div className="w-4 h-4 border-2 border-amber-300 border-t-white rounded-full animate-spin"></div> Özet oluşturuluyor...</>
-                ) : '✨ Özet Oluştur'}
-              </button>
-            )}
-            {!book.description && !summary && (
-              <p className="text-xs text-gray-400 mt-2 text-center">Özet için kitabın açıklaması gereklidir.</p>
-            )}
+          {/* AI Özet Kartı */}
+          <div className="bg-white rounded-[2rem] shadow-sm border border-slate-100/60 p-8 hover:shadow-md transition-all flex flex-col relative overflow-hidden group">
+            <div className="absolute -top-10 -right-10 w-32 h-32 bg-indigo-500/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700"></div>
+            
+            <h3 className="text-lg font-black text-slate-800 mb-6 flex items-center gap-2 relative z-10"><div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-500 shadow-inner">🤖</div> AI Modülü</h3>
+            
+            <div className="flex-1 flex flex-col relative z-10">
+              {summary ? (
+                <div className="flex-1 bg-slate-50 rounded-2xl p-4 border border-slate-100/60 overflow-y-auto custom-scrollbar">
+                  <p className="text-[13px] font-medium text-slate-600 leading-relaxed">{summary}</p>
+                </div>
+              ) : (
+                <div className="flex-1 flex items-center justify-center flex-col text-center">
+                   <p className="text-sm font-bold text-slate-400 mb-6 px-4">Yapay zekanın eseri senin için analiz etmesini sağla.</p>
+                   <button
+                    onClick={handleSummarize}
+                    disabled={!book.description || summaryLoading}
+                    className="w-full h-[46px] bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-bold shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/40 hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:shadow-none flex items-center justify-center gap-2"
+                  >
+                    {summaryLoading ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> Analiz Ediliyor...</> : 'Bana Özeti Çıkar'}
+                  </button>
+                  {!book.description && !summary && <p className="text-[11px] font-bold text-amber-500 mt-3 uppercase tracking-wider">Açıklama Gerekiyor</p>}
+                </div>
+              )}
+            </div>
           </div>
         </div>
+
       </div>
 
       {showUpdateModal && (
