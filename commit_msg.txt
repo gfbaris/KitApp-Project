@@ -1,1 +1,1 @@
-feat: KitApp web frontend tamamlandi - Baris Saylik
+fix: CORS sorunu çözüldü
