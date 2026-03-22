@@ -1,1 +1,4 @@
-feat: Tum uygulama Premium 3D Glassmorphism tasarima gecirildi ve kitap ekleme sayfasi hatasi giderildi
+feat: B2B SaaS Minimalist (Vercel/Linear) Redesign
+- Added DashboardLayout with Sidebar
+- Transformed all pages into clean, white-card, minimal border style
+- Added search input back to HomePage

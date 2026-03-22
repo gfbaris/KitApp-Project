@@ -1,83 +1,59 @@
 import { useNavigate } from 'react-router-dom';
 
-const genreGradients = {
-  'Roman': 'from-blue-500 to-indigo-600',
-  'Bilim Kurgu': 'from-purple-500 to-fuchsia-600',
-  'Tarih': 'from-amber-400 to-orange-500',
-  'Polisiye': 'from-slate-600 to-slate-800',
-  'Şiir': 'from-rose-400 to-pink-600',
-  'Biyografi': 'from-teal-500 to-emerald-600',
-  'Fantastik': 'from-violet-500 to-purple-700',
-  'Felsefe': 'from-indigo-500 to-cyan-600',
-};
-
 const BookCard = ({ book }) => {
   const navigate = useNavigate();
-  const gradient = genreGradients[book.genre] || 'from-indigo-400 to-blue-500';
 
   return (
     <div
       onClick={() => navigate(`/books/${book._id}`)}
-      className="group bg-white rounded-[2rem] p-3 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_20px_40px_rgb(79,70,229,0.15)] border border-slate-100/60 overflow-hidden transition-all duration-500 cursor-pointer flex flex-col h-full transform hover:-translate-y-2 relative"
+      className="group flex flex-col bg-white rounded-2xl border border-slate-200/80 shadow-sm hover:shadow-md hover:border-slate-300 overflow-hidden cursor-pointer transition-all duration-200 h-full"
     >
-      {/* Glow Effect Arkada */}
-      <div className={`absolute -inset-4 bg-gradient-to-br ${gradient} opacity-0 group-hover:opacity-10 blur-2xl transition-opacity duration-700 -z-10`}></div>
-
-      {/* Kapak Görseli */}
-      <div className={`relative h-[220px] rounded-3xl ${book.coverImage ? '' : `bg-gradient-to-br ${gradient}`} flex-shrink-0 overflow-hidden shadow-inner`}>
+      {/* Resim Alanı */}
+      <div className="relative h-48 bg-slate-50 border-b border-slate-100 flex-shrink-0 flex items-center justify-center overflow-hidden">
         {book.coverImage ? (
-          <>
-            <img
-              src={book.coverImage}
-              alt={book.title}
-              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out"
-              onError={(e) => {
-                e.target.style.display = 'none';
-                e.target.parentElement.classList.add(`bg-gradient-to-br`, ...gradient.split(' '));
-              }}
-            />
-            {/* Overlay Gradient (daha iyi kontrast için) */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-          </>
+          <img
+            src={book.coverImage}
+            alt={book.title}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
+            onError={(e) => {
+              e.target.style.display = 'none';
+              e.target.parentElement.classList.add('bg-slate-100');
+            }}
+          />
         ) : (
-          <div className="absolute inset-0 flex items-center justify-center text-white/40 group-hover:scale-110 transition-transform duration-700 ease-out">
-            <span className="text-6xl drop-shadow-md">📖</span>
-          </div>
-        )}
-
-        {/* Tür rozeti (Badge) */}
-        {book.genre && (
-          <span className="absolute top-3 right-3 bg-white/95 backdrop-blur-md text-[11px] font-black tracking-wider text-slate-700 uppercase px-3 py-1.5 rounded-full shadow-[0_4px_10px_rgba(0,0,0,0.1)] group-hover:shadow-lg transition-shadow">
-            {book.genre}
-          </span>
+          <span className="text-4xl text-slate-300 group-hover:scale-110 transition-transform duration-500 ease-out">📖</span>
         )}
       </div>
 
-      {/* Bilgiler */}
-      <div className="p-4 flex-1 flex flex-col bg-white rounded-b-[2rem] z-10">
-        <h3 className="text-base font-extrabold text-slate-800 line-clamp-2 leading-tight group-hover:text-indigo-600 transition-colors">
-          {book.title}
-        </h3>
-        <p className="text-[13px] font-medium text-slate-500 mt-1.5 truncate">{book.author}</p>
+      {/* İçerik Alanı */}
+      <div className="p-4 flex flex-col flex-1">
+        <div className="flex items-start justify-between gap-2 mb-1">
+          <h3 className="text-[15px] font-semibold text-slate-900 leading-tight line-clamp-2 group-hover:text-indigo-600 transition-colors">
+            {book.title}
+          </h3>
+          {book.genre && (
+            <span className="flex-shrink-0 bg-slate-100 text-slate-600 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full border border-slate-200/60">
+              {book.genre}
+            </span>
+          )}
+        </div>
+        
+        <p className="text-[13px] text-slate-500 truncate mb-4">{book.author}</p>
 
-        <div className="flex-1"></div>
-
-        {/* Alt Bilgiler Bar */}
-        <div className="flex justify-between items-center mt-4 pt-4 border-t border-slate-100">
+        <div className="mt-auto pt-4 border-t border-slate-100 flex items-center justify-between">
           <div className="flex items-center gap-1.5">
             {book.averageRating > 0 ? (
-              <div className="flex items-center gap-1 bg-amber-50 rounded-lg px-2 py-1 border border-amber-100/50">
-                <span className="text-amber-500 text-xs shadow-sm">⭐</span>
-                <span className="text-[13px] font-black text-amber-600">{book.averageRating.toFixed(1)}</span>
+              <div className="flex items-center gap-1 bg-amber-50 rounded-md px-1.5 py-0.5 border border-amber-100">
+                <span className="text-amber-500 text-[10px]">⭐</span>
+                <span className="text-xs font-semibold text-amber-700">{book.averageRating.toFixed(1)}</span>
               </div>
             ) : (
-              <span className="text-[11px] font-semibold text-slate-400 bg-slate-50 px-2 py-1 rounded-lg">Puan Yok</span>
+              <span className="text-[11px] text-slate-400 font-medium">No rating</span>
             )}
           </div>
-
-          {book.pageCount ? (
-            <span className="text-[11px] font-black text-slate-400 uppercase tracking-wider">{book.pageCount} SF</span>
-          ) : null}
+          {book.pageCount && (
+            <span className="text-[11px] text-slate-400 font-medium">{book.pageCount} pages</span>
+          )}
         </div>
       </div>
     </div>
