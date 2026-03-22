@@ -1,1 +1,1 @@
-fix: api isteklerinde 401 hatasını yakalamak icin hata kayitlari (log) ve strict token seti eklendi
+fix: displayedBooks.map is not a function hatasi cozuldu (API yaniti dogru ayristirildi)

@@ -19,8 +19,12 @@ const Navbar = ({ onSearchResults }) => {
     setSearching(true);
     try {
       const res = await searchBooks(query.trim());
-      const books = res.data.books || res.data || [];
-      if (onSearchResults) onSearchResults(books, query.trim());
+      let booksData = [];
+      if (Array.isArray(res.data?.data)) booksData = res.data.data;
+      else if (Array.isArray(res.data?.books)) booksData = res.data.books;
+      else if (Array.isArray(res.data)) booksData = res.data;
+      
+      if (onSearchResults) onSearchResults(booksData, query.trim());
     } catch {
       if (onSearchResults) onSearchResults([], query.trim());
     } finally {

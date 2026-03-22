@@ -226,7 +226,13 @@ const HomePage = () => {
       const res = genre && genre !== 'Hepsi'
         ? await filterBooks(genre)
         : await getBooks();
-      setBooks(res.data.books || res.data || []);
+      
+      let booksData = [];
+      if (Array.isArray(res.data?.data)) booksData = res.data.data;
+      else if (Array.isArray(res.data?.books)) booksData = res.data.books;
+      else if (Array.isArray(res.data)) booksData = res.data;
+      
+      setBooks(booksData);
     } catch {
       setBooks([]);
     } finally {
