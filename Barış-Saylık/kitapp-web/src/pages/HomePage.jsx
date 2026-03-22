@@ -1,97 +1,157 @@
 import { useState, useEffect, useCallback } from 'react';
 import Navbar from '../components/Navbar';
 import BookCard from '../components/BookCard';
-import { getBooks, filterBooks, addBook } from '../services/api';
-import { getRecommendations } from '../services/api';
+import SkeletonCard from '../components/SkeletonCard';
+import { getBooks, filterBooks, addBook, getRecommendations } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 
-const GENRES = ['Hepsi', 'Roman', 'Bilim Kurgu', 'Tarih', 'Polisiye', 'Şiir', 'Fantastik', 'Felsefe'];
+const GENRES = ['Hepsi', 'Roman', 'Bilim Kurgu', 'Tarih', 'Polisiye', 'Şiir', 'Biyografi'];
 
-// Kitap Ekleme Modal
+// ─── Kitap Ekleme Modalı ────────────────────────────
 const AddBookModal = ({ onClose, onAdded }) => {
-  const [form, setForm] = useState({ title: '', author: '', genre: 'Roman', pageCount: '', publishYear: '', description: '', coverImage: '' });
+  const { showToast } = useToast();
+  const [form, setForm] = useState({
+    title: '', author: '', genre: 'Roman',
+    pageCount: '', publishYear: '', description: '', coverImage: '',
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  const handleChange = (e) => setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
     setError('');
+    setLoading(true);
     try {
       const payload = { ...form };
       if (payload.pageCount) payload.pageCount = Number(payload.pageCount);
       if (payload.publishYear) payload.publishYear = Number(payload.publishYear);
       if (!payload.coverImage) delete payload.coverImage;
       await addBook(payload);
+      showToast('Kitap başarıyla eklendi ✓', 'success');
       onAdded();
       onClose();
     } catch (err) {
-      setError(err.response?.data?.error || 'Kitap eklenemedi.');
+      setError(err.response?.data?.error || 'Kitap eklenirken bir hata oluştu.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4 animate-in fade-in duration-200">
-      <div className="bg-white rounded-[2rem] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3)] w-full max-w-lg max-h-[90vh] overflow-y-auto transform transition-all duration-300 scale-100 border border-slate-100">
+    <div
+      className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+    >
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
         <div className="p-8">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-extrabold text-slate-800 flex items-center gap-2">
-              <span className="text-amber-500">📖</span> Yeni Kitap Ekle
-            </h2>
-            <button onClick={onClose} className="text-slate-400 hover:text-rose-500 bg-slate-50 hover:bg-rose-50 rounded-full w-8 h-8 flex items-center justify-center transition-colors">
+          {/* Başlık */}
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-bold text-gray-900">Yeni Kitap Ekle</h2>
+            <button
+              onClick={onClose}
+              className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 hover:text-gray-700 transition-colors text-sm"
+            >
               ✕
             </button>
           </div>
 
-          {error && <div className="bg-rose-50 text-rose-600 border border-rose-100 rounded-xl px-4 py-3 mb-5 text-sm font-medium">{error}</div>}
-          
+          {error && (
+            <div className="bg-red-50 border border-red-200 rounded-xl p-3 mb-5 flex items-center gap-2">
+              <span className="text-red-500">⚠️</span>
+              <span className="text-sm text-red-600">{error}</span>
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-1">
-              <label className="text-xs font-semibold uppercase tracking-wider text-slate-500 ml-1">Kitap Adı</label>
-              <input required value={form.title} onChange={e => setForm({...form, title: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium text-slate-700" placeholder="Suç ve Ceza" />
+            <div>
+              <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Kitap Adı *</label>
+              <input
+                name="title" required value={form.title} onChange={handleChange}
+                placeholder="Suç ve Ceza"
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-800 bg-white placeholder:text-gray-400 text-sm transition-all"
+              />
             </div>
 
-            <div className="space-y-1">
-              <label className="text-xs font-semibold uppercase tracking-wider text-slate-500 ml-1">Yazar</label>
-              <input required value={form.author} onChange={e => setForm({...form, author: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium text-slate-700" placeholder="Fyodor Dostoyevski" />
+            <div>
+              <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Yazar *</label>
+              <input
+                name="author" required value={form.author} onChange={handleChange}
+                placeholder="Fyodor Dostoyevski"
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-800 bg-white placeholder:text-gray-400 text-sm transition-all"
+              />
             </div>
 
-            <div className="space-y-1">
-              <label className="text-xs font-semibold uppercase tracking-wider text-slate-500 ml-1">Kategori (Tür)</label>
-              <select value={form.genre} onChange={e => setForm({...form, genre: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium text-slate-700 appearance-none">
-                {GENRES.filter(g => g !== 'Hepsi').map(g => <option key={g}>{g}</option>)}
+            <div>
+              <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Tür</label>
+              <select
+                name="genre" value={form.genre} onChange={handleChange}
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-800 bg-white text-sm transition-all"
+              >
+                {GENRES.filter(g => g !== 'Hepsi').map(g => (
+                  <option key={g} value={g}>{g}</option>
+                ))}
+                <option value="Diğer">Diğer</option>
               </select>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1">
-                <label className="text-xs font-semibold uppercase tracking-wider text-slate-500 ml-1">Sayfa Sayısı</label>
-                <input type="number" value={form.pageCount} onChange={e => setForm({...form, pageCount: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium text-slate-700" placeholder="Örn: 350" />
+              <div>
+                <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Sayfa Sayısı</label>
+                <input
+                  name="pageCount" type="number" min="1" value={form.pageCount} onChange={handleChange}
+                  placeholder="350"
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-800 bg-white placeholder:text-gray-400 text-sm transition-all"
+                />
               </div>
-              <div className="space-y-1">
-                <label className="text-xs font-semibold uppercase tracking-wider text-slate-500 ml-1">Basım Yılı</label>
-                <input type="number" value={form.publishYear} onChange={e => setForm({...form, publishYear: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium text-slate-700" placeholder="Örn: 2023" />
+              <div>
+                <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Yayın Yılı</label>
+                <input
+                  name="publishYear" type="number" min="1000" max="2099" value={form.publishYear} onChange={handleChange}
+                  placeholder="1866"
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-800 bg-white placeholder:text-gray-400 text-sm transition-all"
+                />
               </div>
             </div>
 
-            <div className="space-y-1">
-              <label className="text-xs font-semibold uppercase tracking-wider text-slate-500 ml-1">Kapak Görseli (URL)</label>
-              <input value={form.coverImage} onChange={e => setForm({...form, coverImage: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium text-slate-700" placeholder="https://..." />
+            <div>
+              <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Açıklama</label>
+              <textarea
+                name="description" value={form.description} onChange={handleChange}
+                rows={4}
+                placeholder="Kitap hakkında kısa bir açıklama..."
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-800 bg-white placeholder:text-gray-400 text-sm transition-all resize-none"
+              />
             </div>
 
-            <div className="space-y-1">
-              <label className="text-xs font-semibold uppercase tracking-wider text-slate-500 ml-1">Kısa Açıklama</label>
-              <textarea value={form.description} onChange={e => setForm({...form, description: e.target.value})} rows={3} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium text-slate-700 resize-none" placeholder="Kitap hakkında düşüncelerin..." />
+            <div>
+              <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Kapak Görseli URL</label>
+              <input
+                name="coverImage" value={form.coverImage} onChange={handleChange}
+                placeholder="https://... (opsiyonel)"
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-800 bg-white placeholder:text-gray-400 text-sm transition-all"
+              />
             </div>
 
-            <div className="flex gap-4 pt-4 mt-2">
-              <button type="button" onClick={onClose} className="flex-1 bg-white border-2 border-slate-200 text-slate-600 rounded-xl py-3.5 text-sm font-bold hover:bg-slate-50 hover:border-slate-300 hover:text-slate-800 transition-all">
-                İptal Et
+            <div className="flex justify-end gap-3 pt-2">
+              <button
+                type="button" onClick={onClose}
+                className="px-6 py-3 bg-white text-gray-700 rounded-xl font-medium border border-gray-200 hover:bg-gray-50 transition-colors duration-200"
+              >
+                Vazgeç
               </button>
-              <button type="submit" disabled={loading} className="flex-1 bg-gradient-to-r from-indigo-600 to-[#1e3a5f] hover:from-indigo-500 hover:to-indigo-700 text-white rounded-xl py-3.5 text-sm font-bold shadow-lg shadow-indigo-500/30 hover:shadow-indigo-500/50 hover:-translate-y-0.5 disabled:opacity-60 disabled:hover:translate-y-0 transition-all">
-                {loading ? 'Kitap Ekleniyor...' : 'Kitabı Kütüphaneye Ekle'}
+              <button
+                type="submit" disabled={loading}
+                className="px-6 py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 active:bg-indigo-800 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {loading ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                    Ekleniyor...
+                  </>
+                ) : 'Kitabı Ekle'}
               </button>
             </div>
           </form>
@@ -101,24 +161,71 @@ const AddBookModal = ({ onClose, onAdded }) => {
   );
 };
 
+// ─── AI Önerileri Paneli ─────────────────────────────
+const AIRecommendations = ({ userId }) => {
+  const [recommendations, setRecommendations] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!userId) return;
+    getRecommendations(userId)
+      .then(res => setRecommendations(res.data.recommendations || []))
+      .catch(() => setRecommendations([]))
+      .finally(() => setLoading(false));
+  }, [userId]);
+
+  return (
+    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+      <div className="mb-4">
+        <h3 className="text-base font-semibold text-gray-800">🤖 Sana Özel Öneriler</h3>
+        <p className="text-xs text-gray-400 mt-0.5">Okuma geçmişine göre önerildi</p>
+      </div>
+
+      {loading ? (
+        <div className="space-y-4">
+          {[1, 2, 3].map(i => (
+            <div key={i} className="animate-pulse space-y-1.5 pb-4 border-b border-gray-50 last:border-0 last:pb-0">
+              <div className="h-3 bg-gray-100 rounded w-3/4"></div>
+              <div className="h-2.5 bg-gray-100 rounded w-1/2"></div>
+              <div className="h-2.5 bg-gray-100 rounded w-2/3"></div>
+            </div>
+          ))}
+        </div>
+      ) : recommendations.length === 0 ? (
+        <p className="text-sm text-gray-400 leading-relaxed">
+          Daha fazla kitap okuyunca öneriler burada görünür.
+        </p>
+      ) : (
+        <div className="space-y-3">
+          {recommendations.map((rec, i) => (
+            <div key={i} className="pb-3 border-b border-gray-50 last:border-0 last:pb-0">
+              <p className="font-medium text-gray-800 text-sm leading-snug">{rec.title}</p>
+              {rec.author && <p className="text-xs text-gray-500 mt-0.5">{rec.author}</p>}
+              {rec.reason && <p className="text-xs text-indigo-600 mt-1 leading-relaxed">{rec.reason}</p>}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ─── Ana Sayfa ───────────────────────────────────────
 const HomePage = () => {
   const { user } = useAuth();
   const [books, setBooks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeGenre, setActiveGenre] = useState('Hepsi');
-  const [recommendations, setRecommendations] = useState([]);
   const [showModal, setShowModal] = useState(false);
-  const [searchResults, setSearchResults] = useState(null); 
+  const [searchResults, setSearchResults] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
-  const loadBooks = useCallback(async (genre) => {
+  const loadBooks = useCallback(async (genre = 'Hepsi') => {
     setLoading(true);
     try {
-      let res;
-      if (genre && genre !== 'Hepsi') {
-        res = await filterBooks(genre);
-      } else {
-        res = await getBooks();
-      }
+      const res = genre && genre !== 'Hepsi'
+        ? await filterBooks(genre)
+        : await getBooks();
       setBooks(res.data.books || res.data || []);
     } catch {
       setBooks([]);
@@ -127,178 +234,118 @@ const HomePage = () => {
     }
   }, []);
 
-  const loadRecommendations = useCallback(async () => {
-    if (!user?._id) return;
-    try {
-      const res = await getRecommendations(user._id);
-      setRecommendations(res.data.recommendations || []);
-    } catch {
-      setRecommendations([]);
-    }
-  }, [user]);
-
   useEffect(() => {
     loadBooks('Hepsi');
-    loadRecommendations();
-  }, [loadBooks, loadRecommendations]);
+  }, [loadBooks]);
 
   const handleGenreFilter = (genre) => {
     setActiveGenre(genre);
     setSearchResults(null);
+    setSearchQuery('');
     loadBooks(genre);
   };
 
-  const handleSearchResults = (results) => {
+  const handleSearchResults = (results, query) => {
     setSearchResults(results);
+    setSearchQuery(query || '');
   };
 
   const displayedBooks = searchResults !== null ? searchResults : books;
+  const isSearching = searchResults !== null;
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] pb-20 pt-24 selection:bg-indigo-500/30">
+    <div className="min-h-screen bg-gray-50">
       <Navbar onSearchResults={handleSearchResults} />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-2 flex flex-col lg:flex-row gap-8">
-        
-        {/* Sol İçerik: Kütüphane Grid */}
-        <div className="flex-1 w-full">
-          
-          <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 pb-4 border-b border-gray-200/60">
-            <div>
-              <h2 className="text-3xl font-extrabold text-slate-800 tracking-tight flex items-center gap-3">
-                {searchResults !== null ? '🔍 Arama Sonuçları' : 'Kütüphanem'}
-              </h2>
-              <p className="text-slate-500 text-sm mt-1.5 font-medium">
-                {searchResults !== null 
-                  ? `${searchResults.length} kitap bulundu.` 
-                  : 'Okuduğun ve sakladığın tüm eserler burada sergileniyor.'}
-              </p>
-            </div>
-            {searchResults === null && (
-              <div className="text-right mt-3 md:mt-0">
-                <span className="inline-flex items-center gap-1.5 bg-indigo-50 text-indigo-700 border border-indigo-100 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
-                  TOPLAM {books.length} KİTAP
-                </span>
-              </div>
-            )}
-          </div>
+      <div className="max-w-7xl mx-auto px-6 py-8">
+        <div className="lg:flex gap-8">
 
-          {/* Filtre Pilleri (Pills) */}
-          {searchResults === null && (
-            <div className="flex flex-wrap gap-2.5 mb-8">
-              {GENRES.map((genre) => {
-                const isActive = activeGenre === genre;
-                return (
+          {/* Sol Panel: Kitap Listesi */}
+          <div className="flex-1 min-w-0">
+
+            {/* Başlık */}
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900">
+                  {isSearching ? `"${searchQuery}" Sonuçları` : 'Kütüphane'}
+                </h2>
+                {!loading && (
+                  <p className="text-sm text-gray-500 mt-1">
+                    {displayedBooks.length} kitap bulundu
+                  </p>
+                )}
+              </div>
+              {!isSearching && (
+                <button
+                  onClick={() => setShowModal(true)}
+                  className="px-5 py-2.5 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 active:bg-indigo-800 transition-colors duration-200 text-sm flex items-center gap-1.5 flex-shrink-0"
+                >
+                  <span className="text-lg leading-none">+</span> Kitap Ekle
+                </button>
+              )}
+            </div>
+
+            {/* Tür Filtreleri — sadece arama yoksa */}
+            {!isSearching && (
+              <div className="flex gap-2 overflow-x-auto pb-2 mb-6 scrollbar-hide">
+                {GENRES.map(genre => (
                   <button
                     key={genre}
                     onClick={() => handleGenreFilter(genre)}
-                    className={`px-5 py-2 rounded-full text-[13px] font-bold tracking-wide transition-all duration-300 ${
-                      isActive
-                        ? 'bg-slate-800 text-white shadow-md shadow-slate-800/20 ring-2 ring-slate-800 ring-offset-2 ring-offset-[#f8fafc]'
-                        : 'bg-white text-slate-600 border border-slate-200 hover:border-slate-400 hover:text-slate-900 shadow-sm'
+                    className={`flex-shrink-0 px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-200 ${
+                      activeGenre === genre
+                        ? 'bg-indigo-600 text-white shadow-sm'
+                        : 'bg-white text-gray-600 border border-gray-200 hover:border-indigo-300 hover:text-indigo-600'
                     }`}
                   >
                     {genre}
                   </button>
-                );
-              })}
-            </div>
-          )}
-
-          {/* Kitaplar */}
-          {loading ? (
-            <div className="flex items-center justify-center py-24">
-              <div className="relative w-16 h-16">
-                <div className="absolute inset-0 rounded-full border-t-2 border-indigo-500 animate-[spin_1s_linear_infinite]"></div>
-                <div className="absolute inset-2 rounded-full border-r-2 border-amber-500 animate-[spin_1.5s_linear_infinite_reverse]"></div>
+                ))}
               </div>
-            </div>
-          ) : displayedBooks.length === 0 ? (
-            <div className="bg-white border border-slate-100 rounded-3xl p-12 text-center shadow-sm flex flex-col items-center justify-center mt-4">
-              <div className="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center text-5xl mb-4 shadow-inner">
-                {searchResults !== null ? '📭' : '📚'}
+            )}
+
+            {/* Skeleton / Boş / Grid */}
+            {loading ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)}
               </div>
-              <h3 className="text-xl font-bold text-slate-800 mb-2">
-                {searchResults !== null ? 'Sonuç Bulunamadı' : 'Kitaplığın Henüz Boş'}
-              </h3>
-              <p className="text-slate-500 max-w-sm mx-auto">
-                {searchResults !== null 
-                  ? 'Farklı bir kelime ile aramayı deneyebilirsin.' 
-                  : 'Fiziksel kütüphaneni dijitale taşımanın tam vakti. Hemen sağ alttaki "+" butonuna tıkla ve ilk kitabını ekle.'}
-              </p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-              {displayedBooks.map((book) => (
-                <BookCard key={book._id} book={book} />
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Sağ Panel: Yapay Zeka Önerileri */}
-        <div className="hidden lg:block w-80 flex-shrink-0">
-          <div className="sticky top-24 bg-gradient-to-v from-white to-slate-50 rounded-[2rem] shadow-xl shadow-indigo-900/5 border border-indigo-50/50 p-6 relative overflow-hidden group">
-            
-            {/* Arka plan dekoratif balon */}
-            <div className="absolute -top-10 -right-10 w-32 h-32 bg-indigo-500/10 rounded-full blur-2xl"></div>
-            <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-amber-500/10 rounded-full blur-2xl"></div>
-
-            <div className="relative">
-              <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-lg shadow-indigo-500/30 mb-5">
-                <span className="text-2xl animate-pulse">✨</span>
+            ) : displayedBooks.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-20 bg-white rounded-2xl border border-gray-100">
+                <span className="text-6xl text-gray-200 mb-4">📚</span>
+                <p className="text-lg font-medium text-gray-500">
+                  {isSearching ? 'Sonuç bulunamadı' : 'Kütüphaneniz boş'}
+                </p>
+                <p className="text-sm text-gray-400 mt-1">
+                  {isSearching ? 'Farklı bir kelime deneyin.' : 'İlk kitabınızı ekleyin'}
+                </p>
+                {!isSearching && (
+                  <button
+                    onClick={() => setShowModal(true)}
+                    className="mt-4 px-5 py-2.5 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-colors text-sm"
+                  >
+                    + İlk Kitabı Ekle
+                  </button>
+                )}
               </div>
-              <h3 className="font-extrabold text-xl text-slate-800 tracking-tight leading-tight mb-2">
-                Yapay Zeka Pick'leri
-              </h3>
-              <p className="text-xs font-medium text-slate-500 mb-6">
-                Senin okuma geçmişini analiz ettik. İşte listeye alman gereken spesifik eserler.
-              </p>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {displayedBooks.map(book => (
+                  <BookCard key={book._id} book={book} />
+                ))}
+              </div>
+            )}
+          </div>
 
-              {recommendations.length === 0 ? (
-                <div className="bg-white/50 border border-slate-100 rounded-xl p-4 text-center">
-                  <p className="text-slate-500 text-xs font-medium">Yeterli veri yok.</p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {recommendations.map((rec, i) => (
-                    <div 
-                      key={i} 
-                      className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 hover:shadow-md hover:border-indigo-100 transition-all cursor-default group/card"
-                    >
-                      <h4 className="font-bold text-slate-800 text-sm leading-tight mb-1 group-hover/card:text-indigo-600 transition-colors">
-                        {rec.title}
-                      </h4>
-                      <p className="text-slate-400 text-[11px] uppercase tracking-wider font-semibold mb-2">
-                        {rec.author}
-                      </p>
-                      {rec.reason && (
-                        <div className="bg-indigo-50/50 rounded-xl p-2.5">
-                          <p className="text-indigo-700/80 text-xs leading-relaxed italic font-medium">
-                            "{rec.reason}"
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
+          {/* Sağ Panel: AI Önerileri */}
+          <div className="w-full lg:w-80 flex-shrink-0 mt-8 lg:mt-0 hidden lg:block">
+            <div className="sticky top-20">
+              <AIRecommendations userId={user?._id} />
             </div>
           </div>
         </div>
-
       </div>
 
-      {/* Modern Yüzen Ekleme Butonu */}
-      <button
-        onClick={() => setShowModal(true)}
-        className="fixed bottom-8 right-8 lg:bottom-10 lg:right-10 w-16 h-16 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white rounded-full shadow-[0_10px_30px_rgba(245,158,11,0.5)] flex items-center justify-center text-3xl transition-all duration-300 hover:scale-110 active:scale-95 group z-40"
-        title="Kitap Ekle"
-      >
-        <span className="transform transition-transform group-hover:rotate-90">＋</span>
-      </button>
-
-      {/* Modal Render */}
+      {/* Kitap Ekleme Modal */}
       {showModal && (
         <AddBookModal
           onClose={() => setShowModal(false)}

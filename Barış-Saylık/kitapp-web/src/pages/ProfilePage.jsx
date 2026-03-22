@@ -3,268 +3,252 @@ import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import { getUser, updateUser, deleteUser, getReadingAnalysis } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 
+// ─── Profil Sayfası ───────────────────────────────────
 const ProfilePage = () => {
   const { user, logout, setUser } = useAuth();
+  const { showToast } = useToast();
   const navigate = useNavigate();
+
   const [profile, setProfile] = useState(null);
   const [analysis, setAnalysis] = useState(null);
+  const [profileLoading, setProfileLoading] = useState(true);
+  const [analysisLoading, setAnalysisLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({});
-  const [loading, setLoading] = useState(true);
   const [saveLoading, setSaveLoading] = useState(false);
-  const [message, setMessage] = useState('');
 
-  const loadData = async () => {
+  useEffect(() => {
     if (!user?._id) return;
-    setLoading(true);
-    try {
-      const [profileRes, analysisRes] = await Promise.allSettled([
-        getUser(user._id),
-        getReadingAnalysis(user._id),
-      ]);
-      if (profileRes.status === 'fulfilled') {
-        const p = profileRes.value.data.user || profileRes.value.data;
-        setProfile(p);
-        setForm({ firstName: p.firstName, lastName: p.lastName, email: p.email, phone: p.phone || '' });
-      }
-      if (analysisRes.status === 'fulfilled') {
-        setAnalysis(analysisRes.value.data);
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
 
-  useEffect(() => { loadData(); }, [user]);
+    // Paralel yükleme
+    getUser(user._id)
+      .then(res => {
+        const p = res.data.user || res.data;
+        setProfile(p);
+        setForm({ firstName: p.firstName || '', lastName: p.lastName || '', email: p.email || '', phone: p.phone || '' });
+      })
+      .catch(() => {})
+      .finally(() => setProfileLoading(false));
+
+    getReadingAnalysis(user._id)
+      .then(res => setAnalysis(res.data))
+      .catch(() => setAnalysis(null))
+      .finally(() => setAnalysisLoading(false));
+  }, [user]);
+
+  const handleChange = (e) => setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
 
   const handleSave = async () => {
     setSaveLoading(true);
-    setMessage('');
     try {
       const res = await updateUser(user._id, form);
-      const updatedUser = res.data.user || res.data;
-      setProfile(updatedUser);
-      setUser(updatedUser);
-      localStorage.setItem('user', JSON.stringify(updatedUser));
+      const updated = res.data.user || res.data;
+      setProfile(updated);
+      setUser(updated);
+      localStorage.setItem('user', JSON.stringify(updated));
       setEditing(false);
-      setMessage('✅ Profil başarıyla güncellendi!');
-      setTimeout(() => setMessage(''), 3000);
+      showToast('Profil güncellendi ✓', 'success');
     } catch (err) {
-      setMessage(err.response?.data?.error || 'Güncelleme başarısız oldu.');
-      setTimeout(() => setMessage(''), 3000);
+      showToast(err.response?.data?.error || 'Güncelleme başarısız.', 'error');
     } finally {
       setSaveLoading(false);
     }
   };
 
   const handleDelete = async () => {
-    if (!window.confirm('Edebi yolculuğunuzu silmek ve hesabı tamamen kapatmak istediğinize emin misiniz?')) return;
+    if (!window.confirm('Hesabınız kalıcı olarak silinecek. Emin misiniz?')) return;
     try {
       await deleteUser(user._id);
       logout();
       navigate('/login');
     } catch {
-      alert('Hesap silinemedi.');
+      showToast('Hesap silinemedi.', 'error');
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-[#f8fafc] pt-20">
-        <Navbar onSearchResults={() => {}} />
-        <div className="flex items-center justify-center py-40">
-           <div className="relative w-16 h-16">
-            <div className="absolute inset-0 rounded-full border-t-2 border-indigo-500 animate-[spin_1s_linear_infinite]"></div>
-            <div className="absolute inset-2 rounded-full border-r-2 border-amber-500 animate-[spin_1.5s_linear_infinite_reverse]"></div>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const initials = profile
+    ? `${profile.firstName?.[0] || ''}${profile.lastName?.[0] || ''}`.toUpperCase()
+    : '?';
+
+  // İstatistikler
+  const stats = analysis?.stats || {};
+  const topGenres = stats.topGenres ? Object.entries(stats.topGenres).sort(([, a], [, b]) => b - a) : [];
+  const topGenreLabel = topGenres.length > 0 ? topGenres[0][0] : '—';
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] pb-24 pt-24 selection:bg-indigo-500/30">
-      <Navbar onSearchResults={() => {}} />
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 mt-4 space-y-8">
+    <div className="min-h-screen bg-gray-50">
+      <Navbar />
+      <div className="max-w-3xl mx-auto px-6 py-8 space-y-6">
 
-        {/* Kullanıcı Profili Üst Alanı */}
-        <div className="bg-white rounded-[2rem] shadow-[0_10px_30px_-10px_rgba(0,0,0,0.05)] border border-slate-100 p-8 relative overflow-hidden group">
-          
-          {/* Arka Plan Dekoratif Blur Efekti */}
-          <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-50 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 opacity-0 group-hover:opacity-100 transition-opacity duration-1000"></div>
-
-          <div className="relative z-10 flex flex-col md:flex-row md:items-start justify-between gap-6">
-            
-            <div className="flex items-center gap-6">
-              {/* Avatar Box */}
-              <div className="w-24 h-24 bg-gradient-to-br from-indigo-500 via-purple-600 to-indigo-800 rounded-[1.5rem] shadow-xl shadow-indigo-500/20 flex items-center justify-center text-white text-4xl font-extrabold transform -rotate-3 hover:rotate-0 transition-transform duration-300">
-                {profile?.firstName?.[0]?.toUpperCase() || '?'}
-              </div>
-              
-              <div>
-                <h1 className="text-3xl font-extrabold text-slate-800 tracking-tight leading-tight">
-                  {profile?.firstName} {profile?.lastName}
-                </h1>
-                <p className="text-slate-500 font-medium tracking-wide mt-1 flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
-                  {profile?.email}
-                </p>
+        {/* ─── Kart 1: Profil Bilgileri ─── */}
+        {profileLoading ? (
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 animate-pulse">
+            <div className="flex items-center gap-4 mb-6">
+              <div className="w-16 h-16 bg-gray-100 rounded-full"></div>
+              <div className="space-y-2 flex-1">
+                <div className="h-5 bg-gray-100 rounded w-1/3"></div>
+                <div className="h-3 bg-gray-100 rounded w-1/2"></div>
               </div>
             </div>
-
-            {!editing && (
-              <button
-                onClick={() => setEditing(true)}
-                className="bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 text-sm font-bold px-5 py-2.5 rounded-xl transition-colors self-start md:self-center shadow-sm"
-              >
-                ✏️ Bilgileri Düzenle
-              </button>
-            )}
+            <div className="h-3 bg-gray-100 rounded w-full mb-3"></div>
+            <div className="h-3 bg-gray-100 rounded w-2/3"></div>
           </div>
-
-          {message && (
-            <div className={`mt-6 rounded-xl px-5 py-3.5 text-sm font-bold backdrop-blur-md ${message.startsWith('✅') ? 'bg-emerald-50 border border-emerald-100 text-emerald-700' : 'bg-rose-50 border border-rose-100 text-rose-700'}`}>
-              {message}
+        ) : (
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow duration-200">
+            {/* Üst: Avatar + Bilgi + Düzenle */}
+            <div className="flex items-center justify-between gap-4 mb-6">
+              <div className="flex items-center gap-4">
+                <div className="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center flex-shrink-0">
+                  <span className="text-2xl font-bold text-indigo-600">{initials}</span>
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900">
+                    {profile?.firstName} {profile?.lastName}
+                  </h2>
+                  <p className="text-sm text-gray-500 mt-0.5">{profile?.email}</p>
+                </div>
+              </div>
+              {!editing && (
+                <button
+                  onClick={() => setEditing(true)}
+                  className="px-4 py-2 bg-white text-gray-700 rounded-xl font-medium border border-gray-200 hover:bg-gray-50 transition-colors duration-200 text-sm flex-shrink-0"
+                >
+                  Düzenle
+                </button>
+              )}
             </div>
-          )}
 
-          {/* Profil Detayları veya Form */}
-          <div className="mt-8 relative z-10 border-t border-slate-100 pt-8">
+            {/* Düzenleme Formu */}
             {editing ? (
-              <div className="bg-slate-50/50 rounded-2xl p-6 border border-slate-100/50">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold uppercase tracking-widest text-slate-400 ml-1">Adınız</label>
-                    <input value={form.firstName} onChange={e => setForm({...form, firstName: e.target.value})} className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-slate-700 font-medium transition" />
+              <div className="border-t border-gray-100 pt-6">
+                <div className="grid grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Ad</label>
+                    <input name="firstName" value={form.firstName} onChange={handleChange}
+                      className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-800 bg-white text-sm transition-all" />
                   </div>
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold uppercase tracking-widest text-slate-400 ml-1">Soyadınız</label>
-                    <input value={form.lastName} onChange={e => setForm({...form, lastName: e.target.value})} className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-slate-700 font-medium transition" />
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold uppercase tracking-widest text-slate-400 ml-1">Email Adresiniz</label>
-                    <input value={form.email} onChange={e => setForm({...form, email: e.target.value})} className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-slate-700 font-medium transition" />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold uppercase tracking-widest text-slate-400 ml-1">Telefon</label>
-                    <input value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} placeholder="+90 555 123 4567" className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-slate-700 font-medium transition" />
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Soyad</label>
+                    <input name="lastName" value={form.lastName} onChange={handleChange}
+                      className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-800 bg-white text-sm transition-all" />
                   </div>
                 </div>
-
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <button onClick={() => setEditing(false)} className="flex-1 bg-white border border-slate-200 text-slate-600 rounded-xl py-3.5 text-sm font-bold hover:bg-slate-50 transition-colors shadow-sm">
-                    İptal Et
+                <div className="mb-4">
+                  <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">E-posta</label>
+                  <input name="email" type="email" value={form.email} onChange={handleChange}
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-800 bg-white text-sm transition-all" />
+                </div>
+                <div className="mb-5">
+                  <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Telefon</label>
+                  <input name="phone" type="tel" value={form.phone} onChange={handleChange}
+                    placeholder="+90 555 123 4567"
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-800 bg-white placeholder:text-gray-400 text-sm transition-all" />
+                </div>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setEditing(false)}
+                    className="px-6 py-3 bg-white text-gray-700 rounded-xl font-medium border border-gray-200 hover:bg-gray-50 transition-colors duration-200 text-sm"
+                  >
+                    İptal
                   </button>
-                  <button onClick={handleSave} disabled={saveLoading} className="flex-1 bg-gradient-to-r from-indigo-600 to-indigo-800 hover:from-indigo-500 text-white rounded-xl py-3.5 text-sm font-bold shadow-lg shadow-indigo-500/30 hover:-translate-y-0.5 transition-all disabled:opacity-60 disabled:hover:translate-y-0">
-                    {saveLoading ? 'Kaydediliyor...' : 'Değişiklikleri Kaydet'}
+                  <button
+                    onClick={handleSave}
+                    disabled={saveLoading}
+                    className="px-6 py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed text-sm flex items-center gap-2"
+                  >
+                    {saveLoading ? (
+                      <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>Kaydediliyor...</>
+                    ) : 'Kaydet'}
                   </button>
                 </div>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
-                <div>
-                  <span className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-1 block">Ad Soyad</span>
-                  <span className="text-lg font-bold text-slate-800">{profile?.firstName} {profile?.lastName}</span>
+              /* Profil Görünümü */
+              profile?.phone && (
+                <div className="border-t border-gray-50 pt-4">
+                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Telefon</p>
+                  <p className="text-sm text-gray-700">{profile.phone}</p>
                 </div>
-                <div>
-                  <span className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-1 block">Email</span>
-                  <span className="text-lg font-bold text-slate-800">{profile?.email}</span>
-                </div>
-                <div>
-                  <span className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-1 block">Telefon</span>
-                  <span className="text-lg font-bold text-slate-800">{profile?.phone || '—'}</span>
-                </div>
-              </div>
+              )
             )}
-          </div>
 
-        </div>
-
-        {/* AI Okuma Analizi Paneli (Apple/Vercel Tasarımı) */}
-        {analysis && (
-          <div className="bg-white rounded-[2rem] shadow-[0_10px_30px_-10px_rgba(0,0,0,0.05)] border border-slate-100 p-8">
-            <h2 className="text-2xl font-extrabold text-slate-800 mb-8 flex items-center gap-3">
-              <span className="bg-indigo-50 text-indigo-500 p-2 rounded-xl text-xl shadow-sm">🤖</span>
-              KitApp Analizi
-            </h2>
-
-            {/* İstatistik Metrikleri */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
-              <div className="bg-gradient-to-br from-indigo-50 to-white border border-indigo-100/50 rounded-2xl p-6 relative overflow-hidden">
-                <div className="text-sm font-bold text-indigo-900/40 uppercase tracking-widest mb-1">Puanlanan Eser</div>
-                <div className="text-5xl font-extrabold text-indigo-600 tracking-tighter">{analysis.stats?.totalRatings || 0}</div>
-              </div>
-              
-              <div className="bg-gradient-to-br from-rose-50 to-white border border-rose-100/50 rounded-2xl p-6 relative overflow-hidden">
-                <div className="text-sm font-bold text-rose-900/40 uppercase tracking-widest mb-1">Favori Kitap</div>
-                <div className="text-5xl font-extrabold text-rose-500 tracking-tighter">{analysis.stats?.totalFavorites || 0}</div>
-              </div>
-              
-              <div className="bg-gradient-to-br from-amber-50 to-white border border-amber-100/50 rounded-2xl p-6 relative overflow-hidden">
-                <div className="text-sm font-bold text-amber-900/40 uppercase tracking-widest mb-1">Puan Ortalaması</div>
-                <div className="text-5xl font-extrabold text-amber-500 tracking-tighter">{analysis.stats?.averageScore?.toFixed(1) || '—'}</div>
-              </div>
+            {/* Hesabı Sil */}
+            <div className="mt-6 pt-4 border-t border-gray-50">
+              <button
+                onClick={handleDelete}
+                className="px-4 py-2 bg-red-50 text-red-600 rounded-xl font-medium border border-red-100 hover:bg-red-100 transition-colors duration-200 text-sm"
+              >
+                Hesabı Sil
+              </button>
             </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              
-              {/* En Çok Okunan Türler */}
-              {analysis.stats?.topGenres && Object.keys(analysis.stats.topGenres).length > 0 && (
-                <div>
-                  <h3 className="text-[13px] font-extrabold text-slate-400 uppercase tracking-widest mb-4">Okuma Yoğunluğu (Tür)</h3>
-                  <div className="flex flex-wrap gap-2 text-sm">
-                    {Object.entries(analysis.stats.topGenres)
-                      .sort(([,a],[,b]) => b - a)
-                      .map(([genre, count]) => (
-                        <div key={genre} className="bg-slate-800 text-white rounded-xl px-4 py-2 flex items-center gap-2 shadow-[0_4px_10px_rgba(0,0,0,0.1)]">
-                          <span className="font-bold">{genre}</span>
-                          <span className="bg-slate-700 text-slate-300 text-[10px] px-2 py-0.5 rounded-full font-black">{count}</span>
-                        </div>
-                      ))}
-                  </div>
-                </div>
-              )}
-
-              {/* AI İçgörüler / Yorumlar */}
-              {analysis.insights && (
-                <div>
-                  <h3 className="text-[13px] font-extrabold text-slate-400 uppercase tracking-widest mb-4">Yapay Zeka Yorumu</h3>
-                  <div className="bg-indigo-50/50 border border-indigo-100 rounded-2xl p-5">
-                    <p className="text-slate-600 text-[15px] italic leading-relaxed font-medium">
-                      "{analysis.insights}"
-                    </p>
-                  </div>
-                </div>
-              )}
-
-            </div>
-
-            {analysis.message && !analysis.insights && (
-              <div className="bg-slate-50 border border-slate-100 rounded-2xl p-6 text-center mt-6">
-                <p className="text-slate-500 font-medium">{analysis.message}</p>
-              </div>
-            )}
           </div>
         )}
 
-        {/* Cautious Zone (Danger) */}
-        <div className="pt-6 mt-12 border-t border-slate-200">
-           <button 
-              onClick={handleDelete} 
-              className="group flex flex-col sm:flex-row items-center gap-2 sm:gap-4 text-slate-400 hover:text-rose-600 transition-colors bg-white hover:bg-rose-50 border border-slate-200 px-6 py-4 rounded-2xl w-full sm:w-auto"
-            >
-              <div className="bg-rose-100 text-rose-500 w-10 h-10 rounded-full flex items-center justify-center text-lg shadow-sm group-hover:scale-110 transition-transform">🗑️</div>
-              <div className="text-center sm:text-left">
-                <span className="block font-bold">Hesabınızı Kalıcı Olarak Silin</span>
-                <span className="text-xs font-semibold opacity-80">Bu işlem okuma geçmişinizi sonsuza dek silecektir.</span>
-              </div>
-            </button>
-        </div>
+        {/* ─── Kart 2: AI Okuma Analizi ─── */}
+        {analysisLoading ? (
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 animate-pulse space-y-4">
+            <div className="h-5 bg-gray-100 rounded w-1/3"></div>
+            <div className="grid grid-cols-3 gap-4">
+              {[1, 2, 3].map(i => <div key={i} className="h-20 bg-gray-100 rounded-xl"></div>)}
+            </div>
+            <div className="h-3 bg-gray-100 rounded w-full"></div>
+            <div className="h-3 bg-gray-100 rounded w-5/6"></div>
+          </div>
+        ) : (
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow duration-200">
+            <h2 className="text-lg font-semibold text-gray-800 mb-5">🤖 Okuma Profilin</h2>
 
+            {/* İstatistik Kutuları */}
+            <div className="grid grid-cols-3 gap-4 mb-5">
+              {[
+                { label: 'Toplam Kitap', value: stats.totalRatings || 0 },
+                { label: 'Toplam Sayfa', value: stats.totalPages || '—' },
+                { label: 'En Sevilen Tür', value: topGenreLabel, small: true },
+              ].map(({ label, value, small }) => (
+                <div key={label} className="bg-indigo-50 rounded-xl p-4 text-center">
+                  <p className={`font-bold text-indigo-600 ${small ? 'text-sm' : 'text-2xl'} leading-tight`}>{value}</p>
+                  <p className="text-xs text-gray-500 mt-1 leading-snug">{label}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Boş veya analiz */}
+            {analysis?.message && !analysis?.insights ? (
+              <p className="text-sm text-gray-400 text-center py-4">
+                {analysis.message}
+              </p>
+            ) : null}
+
+            {/* Content yapısı: önce insights, varsa içgörü listesi */}
+            {analysis?.insights && (
+              <div className="mt-4">
+                <p className="text-sm text-gray-600 leading-relaxed">{analysis.insights}</p>
+              </div>
+            )}
+
+            {/* Tür dağılımı */}
+            {topGenres.length > 0 && (
+              <div className="mt-5 pt-4 border-t border-gray-50">
+                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">Okuma Dağılımı</p>
+                <div className="flex flex-wrap gap-2">
+                  {topGenres.map(([genre, count]) => (
+                    <span key={genre} className="bg-indigo-50 text-indigo-600 text-xs font-medium px-3 py-1 rounded-full">
+                      {genre} ({count})
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {!analysis && (
+              <p className="text-sm text-gray-400 text-center py-4">
+                Analiz için daha fazla kitap derecelendirmen gerekiyor.
+              </p>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

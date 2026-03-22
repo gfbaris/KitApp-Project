@@ -1,1 +1,1 @@
-feat(ui): complete premium redesign with glassmorphism and modern colors
+feat: KitApp web frontend yeniden tasarlandı - Baris Saylik

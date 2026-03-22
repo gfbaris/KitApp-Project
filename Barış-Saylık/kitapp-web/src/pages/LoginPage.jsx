@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext';
 const LoginPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const { login } = useAuth();
@@ -18,13 +19,16 @@ const LoginPage = () => {
     try {
       const res = await loginUser({ email, password });
       const { token, user } = res.data;
+      // Token ve userId'yi localStorage'a yaz, ardından context'e aktar
+      localStorage.setItem('token', token);
+      localStorage.setItem('userId', user._id);
       login(token, user);
       navigate('/home');
     } catch (err) {
       setError(
         err.response?.data?.error ||
         err.response?.data?.message ||
-        'Giriş başarısız. Email veya şifre hatalı.'
+        'E-posta veya şifre hatalı.'
       );
     } finally {
       setLoading(false);
@@ -32,81 +36,95 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#0a192f] bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-900/40 via-[#0a192f] to-[#0a192f] flex items-center justify-center p-4 relative overflow-hidden">
-      
-      {/* Arka Plan Dekoratif Blur Efektleri */}
-      <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-500/20 rounded-full mix-blend-screen filter blur-[100px] animate-blob"></div>
-      <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-amber-500/20 rounded-full mix-blend-screen filter blur-[100px] animate-blob animation-delay-2000"></div>
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-lg p-10 w-full max-w-md mx-4">
 
-      <div className="w-full max-w-md relative z-10">
-        
-        {/* Glassmorphism Kart */}
-        <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] p-8 sm:p-10 transition-all duration-300 transform">
-          
-          <div className="text-center mb-8">
-            <div className="text-6xl mb-4 drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]">📚</div>
-            <h1 className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-300 tracking-tight">
-              KitApp
-            </h1>
-            <p className="text-blue-200/80 mt-2 font-medium">Hoş Geldiniz, Kütüphanenize Bağlanın</p>
-          </div>
-
-          {error && (
-            <div className="bg-red-500/10 border border-red-500/50 text-red-200 rounded-xl px-4 py-3 mb-6 text-sm flex items-center gap-2 backdrop-blur-sm">
-              <span>⚠️</span> {error}
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-gray-200 ml-1">Email</label>
-              <div className="relative">
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="ornek@email.com"
-                  required
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3.5 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500/50 focus:bg-white/10 transition-all duration-200"
-                />
-              </div>
-            </div>
-            
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-gray-200 ml-1">Şifre</label>
-              <div className="relative">
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  required
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3.5 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500/50 focus:bg-white/10 transition-all duration-200"
-                />
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full mt-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-white font-bold py-3.5 rounded-xl transition-all duration-300 transform hover:-translate-y-1 hover:shadow-[0_0_20px_rgba(245,158,11,0.4)] disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:shadow-none active:scale-95"
-            >
-              {loading ? (
-                <span className="flex items-center justify-center gap-2">
-                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                  Giriş Yapılıyor...
-                </span>
-              ) : 'Giriş Yap'}
-            </button>
-          </form>
-
-          <div className="mt-8 text-center text-sm text-gray-400">
-            Hesabınız yok mu?{' '}
-            <Link to="/register" className="text-amber-400 font-bold hover:text-amber-300 transition-colors border-b border-transparent hover:border-amber-300 pb-0.5">
-              Hemen Kayıt Olun
-            </Link>
-          </div>
+        {/* Logo */}
+        <div className="text-center mb-8">
+          <div className="text-5xl mb-3">📚</div>
+          <h1 className="text-2xl font-bold text-gray-900">KitApp</h1>
+          <p className="text-sm text-gray-500 mt-1">Kütüphanene hoş geldin</p>
         </div>
+
+        {/* Hata Mesajı */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-xl p-3 mb-5 flex items-center gap-2">
+            <span className="text-red-500">⚠️</span>
+            <span className="text-sm text-red-600">{error}</span>
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Email */}
+          <div>
+            <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">
+              E-posta Adresi
+            </label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              autoComplete="email"
+              placeholder="ornek@email.com"
+              className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-800 bg-white placeholder:text-gray-400 text-sm transition-all"
+            />
+          </div>
+
+          {/* Şifre */}
+          <div>
+            <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">
+              Şifre
+            </label>
+            <div className="relative">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                autoComplete="current-password"
+                placeholder="••••••••"
+                className="w-full px-4 py-3 pr-11 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-800 bg-white placeholder:text-gray-400 text-sm transition-all"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(v => !v)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors text-sm"
+              >
+                {showPassword ? '🙈' : '👁️'}
+              </button>
+            </div>
+          </div>
+
+          {/* Giriş Butonu */}
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full mt-2 px-6 py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 active:bg-indigo-800 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          >
+            {loading ? (
+              <>
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                Giriş yapılıyor...
+              </>
+            ) : 'Giriş Yap'}
+          </button>
+        </form>
+
+        {/* Ayırıcı */}
+        <div className="flex items-center gap-4 my-6">
+          <div className="flex-1 border-t border-gray-100"></div>
+          <span className="text-xs text-gray-400 font-medium">veya</span>
+          <div className="flex-1 border-t border-gray-100"></div>
+        </div>
+
+        {/* Kayıt Linki */}
+        <p className="text-sm text-center text-gray-500">
+          Hesabın yok mu?{' '}
+          <Link to="/register" className="text-indigo-600 font-medium hover:text-indigo-700 transition-colors">
+            Kayıt ol
+          </Link>
+        </p>
       </div>
     </div>
   );
