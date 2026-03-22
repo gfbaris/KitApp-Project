@@ -1,1 +1,1 @@
-feat: KitApp frontend sifirdan yeniden tasarlandi - Baris Saylik
+fix: Tailwind v4 index css import sorunu cozuldu
