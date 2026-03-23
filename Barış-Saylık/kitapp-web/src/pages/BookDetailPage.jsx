@@ -18,7 +18,6 @@ const BookDetailPage = () => {
   const [hoverRating, setHoverRating] = useState(0)
   const [selectedRating, setSelectedRating] = useState(0)
   const [rateLoading, setRateLoading] = useState(false)
-  const [rateDisabled, setRateDisabled] = useState(false)
 
   // Favori
   const [isFav, setIsFav]         = useState(false)
@@ -231,11 +230,10 @@ const BookDetailPage = () => {
                 <button
                   key={star}
                   type="button"
-                  disabled={rateDisabled}
-                  onMouseEnter={() => !rateDisabled && setHoverRating(star)}
-                  onMouseLeave={() => !rateDisabled && setHoverRating(0)}
-                  onClick={() => !rateDisabled && setSelectedRating(star)}
-                  className={`text-3xl cursor-pointer transition-transform hover:scale-110 disabled:cursor-not-allowed ${
+                  onMouseEnter={() => setHoverRating(star)}
+                  onMouseLeave={() => setHoverRating(0)}
+                  onClick={() => setSelectedRating(star)}
+                  className={`text-3xl cursor-pointer transition-transform hover:scale-110 ${
                     star <= (hoverRating || selectedRating) ? 'text-amber-400' : 'text-slate-200'
                   }`}
                 >
