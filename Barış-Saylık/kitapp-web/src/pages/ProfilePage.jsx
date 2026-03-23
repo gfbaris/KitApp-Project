@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import Navbar from '../components/Navbar'
-import { getUser, updateUser, deleteUser, getReadingAnalysis, getBooks } from '../services/api'
+import BookCard from '../components/BookCard'
+import { getUser, updateUser, deleteUser, getReadingAnalysis, getBooks, getFavorites } from '../services/api'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
 import { useNavigate } from 'react-router-dom'
@@ -26,6 +27,9 @@ const ProfilePage = () => {
   const [userBookCount, setUserBookCount]     = useState(0)
   const [userTotalPages, setUserTotalPages]   = useState(0)
   const [booksLoading, setBooksLoading]       = useState(true)
+
+  const [favorites, setFavorites]             = useState([])
+  const [favLoading, setFavLoading]           = useState(true)
 
   const [editMode, setEditMode]     = useState(false)
   const [form, setForm]             = useState({})
@@ -68,6 +72,12 @@ const ProfilePage = () => {
         setUserTotalPages(0)
       })
       .finally(() => setBooksLoading(false))
+
+    // 4) Favori Kitaplar
+    getFavorites()
+      .then(res => setFavorites(res.data?.data || []))
+      .catch(() => setFavorites([]))
+      .finally(() => setFavLoading(false))
   }, [user])
 
   const handleChange = (e) => setForm(prev => ({ ...prev, [e.target.name]: e.target.value }))
@@ -274,6 +284,37 @@ const ProfilePage = () => {
                 </div>
               )}
             </>
+          )}
+        </div>
+
+        {/* Kart 3 — Favori Kitaplarım */}
+        <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-8">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="bg-rose-50 rounded-xl p-2">
+              <span className="text-2xl">❤️</span>
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-slate-900">Favori Kitaplarım</h2>
+              <p className="text-sm text-slate-400">En sevdiğin {favorites.length > 0 ? favorites.length : ''} kitap</p>
+            </div>
+          </div>
+
+          {favLoading ? (
+            <div className="animate-pulse grid grid-cols-2 md:grid-cols-3 gap-6">
+               {[1, 2, 3].map(i => <div key={i} className="h-48 bg-slate-100 rounded-2xl" />)}
+            </div>
+          ) : favorites.length > 0 ? (
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+              {favorites.map(book => (
+                <BookCard key={book._id} book={book} />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-10 bg-slate-50 rounded-2xl border border-slate-100 border-dashed">
+              <span className="text-4xl block mb-2 opacity-40 grayscale">📚</span>
+              <p className="text-sm font-semibold text-slate-600">Henüz favori kitabınız bulunmuyor.</p>
+              <p className="text-xs text-slate-400 mt-1">Kitapları incelerken kalp ikonuna tıklayarak favori listenizi oluşturabilirsiniz.</p>
+            </div>
           )}
         </div>
 
