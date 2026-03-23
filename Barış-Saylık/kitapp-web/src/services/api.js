@@ -41,9 +41,10 @@ export const searchBooks = query         => api.get('/books/search', { params: {
 export const filterBooks = genre         => api.get('/books/filter', { params: { genre } })
 
 // Puanlama & Favori
-export const rateBook    = (id, score) => api.post(`/books/${id}/ratings`, { score })
-export const addFavorite = id          => api.post(`/users/favorites/${id}`)
-export const getFavorites = ()         => api.get('/users/favorites')
+export const rateBook     = (id, score) => api.post(`/books/${id}/ratings`, { score })
+export const addFavorite  = id          => api.post(`/users/favorites/${id}`)
+export const deleteFavorite = id        => api.delete(`/users/favorites/${id}`)
+export const getFavorites = ()          => api.get('/users/favorites')
 
 // AI
 export const getRecommendations = id => api.get(`/ai/recommendations/${id}`)

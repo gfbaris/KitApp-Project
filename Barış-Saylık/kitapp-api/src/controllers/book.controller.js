@@ -1,4 +1,6 @@
 const Book = require('../models/Book');
+const Favorite = require('../models/Favorite');
+const Rating = require('../models/Rating');
 
 // POST /books
 const addBook = async (req, res, next) => {
@@ -110,7 +112,18 @@ const getBook = async (req, res, next) => {
     if (!book) {
       return res.status(404).json({ error: 'Kitap bulunamadı veya erişim yetkiniz yok' });
     }
-    res.status(200).json(book);
+
+    // Kullanıcıya özel bilgileri ekle
+    const [favorite, rating] = await Promise.all([
+      Favorite.findOne({ userId: req.user._id, bookId: book._id }),
+      Rating.findOne({ userId: req.user._id, bookId: book._id })
+    ]);
+
+    const bookData = book.toObject();
+    bookData.isFavorite = !!favorite;
+    bookData.userRating = rating ? rating.score : 0;
+
+    res.status(200).json(bookData);
   } catch (error) {
     next(error);
   }

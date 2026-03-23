@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import BookFormModal from '../components/BookFormModal'
-import { getBook, rateBook, addFavorite, summarizeBook, deleteBook } from '../services/api'
+import { getBook, rateBook, addFavorite, deleteFavorite, summarizeBook, deleteBook } from '../services/api'
 import { useToast } from '../context/ToastContext'
 
 const BookDetailPage = () => {
@@ -31,7 +31,10 @@ const BookDetailPage = () => {
   const loadBook = async () => {
     try {
       const res = await getBook(bookId)
-      setBook(res.data.book || res.data)
+      const data = res.data.book || res.data
+      setBook(data)
+      setIsFav(data.isFavorite || false)
+      setSelectedRating(data.userRating || 0)
     } catch {
       setBook(null)
     } finally {
@@ -42,39 +45,34 @@ const BookDetailPage = () => {
   useEffect(() => { loadBook() }, [bookId])
 
   const handleRate = async () => {
-    if (!selectedRating || rateDisabled) return
+    if (!selectedRating) return
     setRateLoading(true)
     try {
       await rateBook(bookId, selectedRating)
-      showToast('Puanınız kaydedildi! ⭐', 'success')
-      setRateDisabled(true)
+      showToast('Puanınız güncellendi! ⭐', 'success')
       loadBook()
     } catch (err) {
-      if (err.response?.status === 409) {
-        showToast('Bu kitabı zaten puanladınız', 'error')
-        setRateDisabled(true)
-      } else {
-        showToast('Puanlama başarısız', 'error')
-      }
+      showToast('Puanlama başarısız', 'error')
     } finally {
       setRateLoading(false)
     }
   }
 
   const handleFavorite = async () => {
-    if (isFav || favLoading) return
+    if (favLoading) return
     setFavLoading(true)
     try {
-      await addFavorite(bookId)
-      setIsFav(true)
-      showToast('Favorilere eklendi! ❤️', 'success')
-    } catch (err) {
-      if (err.response?.status === 409) {
-        setIsFav(true)
-        showToast('Zaten favorilerinizde', 'info')
+      if (isFav) {
+        await deleteFavorite(bookId)
+        setIsFav(false)
+        showToast('Favorilerden çıkarıldı', 'info')
       } else {
-        showToast('İşlem başarısız', 'error')
+        await addFavorite(bookId)
+        setIsFav(true)
+        showToast('Favorilere eklendi! ❤️', 'success')
       }
+    } catch (err) {
+      showToast('İşlem başarısız', 'error')
     } finally {
       setFavLoading(false)
     }
@@ -252,11 +250,11 @@ const BookDetailPage = () => {
 
             <button
               onClick={handleRate}
-              disabled={!selectedRating || rateDisabled || rateLoading}
+              disabled={!selectedRating || rateLoading}
               className="mt-auto w-full flex items-center justify-center gap-2 px-5 py-2.5 bg-indigo-600 text-white text-sm font-semibold rounded-xl hover:bg-indigo-700 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {rateLoading ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : null}
-              {rateDisabled ? 'Puanlandı ✓' : 'Puanı Kaydet'}
+              Puanı Güncelle
             </button>
           </div>
 
@@ -277,11 +275,15 @@ const BookDetailPage = () => {
 
             <button
               onClick={handleFavorite}
-              disabled={isFav || favLoading}
-              className="w-full flex items-center justify-center gap-2 px-5 py-2.5 bg-indigo-600 text-white text-sm font-semibold rounded-xl hover:bg-indigo-700 active:scale-95 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+              disabled={favLoading}
+              className={`w-full flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-semibold rounded-xl active:scale-95 transition-all disabled:opacity-60 disabled:cursor-not-allowed ${
+                isFav 
+                  ? 'bg-rose-50 text-rose-600 border border-rose-100 hover:bg-rose-100' 
+                  : 'bg-indigo-600 text-white hover:bg-indigo-700'
+              }`}
             >
-              {favLoading ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : null}
-              {isFav ? 'Favorilerde ✓' : 'Favorilere Ekle'}
+              {favLoading ? <div className="w-4 h-4 border-2 border-current/30 border-t-current rounded-full animate-spin" /> : null}
+              {isFav ? 'Favorilerden Çıkar' : 'Favorilere Ekle'}
             </button>
           </div>
 

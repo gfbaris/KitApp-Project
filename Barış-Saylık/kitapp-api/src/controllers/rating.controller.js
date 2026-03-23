@@ -16,11 +16,12 @@ const rateBook = async (req, res, next) => {
       return res.status(404).json({ error: 'Kitap bulunamadı veya size ait değil' });
     }
 
-    const rating = await Rating.create({
-      userId: req.user._id,
-      bookId,
-      score,
-    });
+    // Puanı güncelle veya varsa oluştur
+    const rating = await Rating.findOneAndUpdate(
+      { userId: req.user._id, bookId },
+      { score },
+      { new: true, upsert: true, runValidators: true }
+    );
 
     // Kitabın ortalama puanını ve sayısını güncelle
     const allRatings = await Rating.find({ bookId });
