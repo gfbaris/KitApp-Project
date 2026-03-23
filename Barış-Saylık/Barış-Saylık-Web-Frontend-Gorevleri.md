@@ -32,12 +32,11 @@
   - Accessible form labels ve ARIA attributes
   - Keyboard navigation desteği (Tab, Enter)
 - **Teknik Detaylar:**
-  - Framework: React/Vue/Angular veya Vanilla JS
-  - Form library: React Hook Form, Formik, veya native HTML5
-  - State management (form state, loading state, error state)
-  - Routing (kayıt sayfasından giriş sayfasına geçiş)
-  - SEO optimization (meta tags, structured data)
-  - Accessibility (WCAG 2.1 AA compliance)
+  - Framework: React (Vite)
+  - CSS Library: Tailwind CSS
+  - Form Handling: React Hooks & State
+  - Routing: React Router DOM
+  - SEO: Sayfa başlığı ve açıklaması
 
 ## 2. Kullanıcı Profil Görüntüleme Sayfası
 - **API Endpoint:** `GET /users/{userId}`
@@ -62,13 +61,10 @@
   - Responsive grid layout
   - Print-friendly styles
 - **Teknik Detaylar:**
-  - Lazy loading images (profil fotoğrafları için)
-  - Image optimization (WebP format, responsive images)
-  - Client-side caching (localStorage/sessionStorage)
-  - State management (user data, loading, error states)
-  - Routing (profil düzenleme sayfasına geçiş)
-  - Deep linking desteği (profil paylaşımı için)
-  - Meta tags (Open Graph, Twitter Cards)
+  - UI Library: Lucide-React ikonları
+  - State Management: React Context API ve useEffect
+  - AI Entegrasyonu: Kullanıcının okuma alışkanlıklarını Gemini AI ile analiz eden "Okuma İçgörüleri" bölümü
+  - Component: Favori kitaplar için grid kart yapısı
 
 ## 3. Kullanıcı Profil Düzenleme Sayfası
 - **API Endpoint:** `PUT /users/{userId}`
@@ -99,13 +95,10 @@
   - Image preview (upload öncesi)
   - Progress indicator (image upload için)
 - **Teknik Detaylar:**
-  - Form state management (initial values, edited values, dirty state)
-  - File upload component (drag & drop, file picker)
-  - Image compression (client-side, before upload)
-  - Image preview functionality
-  - Routing (geri dönüş, kaydetme sonrası profil sayfasına dönüş)
-  - Unsaved changes warning (browser navigation)
-  - Form persistence (localStorage, draft saving)
+  - UI: Tailwind CSS ile modern form tasarımı
+  - HTTP Client: Axios (PUT isteği)
+  - State Management: Form dirty-state kontrolü
+  - Feedback: İşlem başarılı olduğunda toast/notification gösterimi
 
 ## 4. Hesap Silme Akışı
 - **API Endpoint:** `DELETE /users/{userId}`
