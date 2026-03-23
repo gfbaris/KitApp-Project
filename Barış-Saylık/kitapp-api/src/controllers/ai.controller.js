@@ -17,7 +17,7 @@ const getRecommendations = async (req, res, next) => {
   let user, allBooks = [], genreMap = {};
   
   try {
-    const { userId } = req.params;
+    const userId = req.user._id;
 
     user = await User.findById(userId);
     if (!user) {
@@ -184,7 +184,7 @@ const getReadingAnalysis = async (req, res, next) => {
   let user, ratings, favorites, genreMap = {};
   
   try {
-    const { userId } = req.params;
+    const userId = req.user._id;
 
     user = await User.findById(userId);
     if (!user) {

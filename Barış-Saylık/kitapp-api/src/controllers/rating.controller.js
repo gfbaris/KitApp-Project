@@ -11,9 +11,9 @@ const rateBook = async (req, res, next) => {
       return res.status(400).json({ error: 'Puan 1 ile 5 arasında olmalıdır' });
     }
 
-    const book = await Book.findById(bookId);
+    const book = await Book.findOne({ _id: bookId, userId: req.user._id });
     if (!book) {
-      return res.status(404).json({ error: 'Kitap bulunamadı' });
+      return res.status(404).json({ error: 'Kitap bulunamadı veya size ait değil' });
     }
 
     const rating = await Rating.create({

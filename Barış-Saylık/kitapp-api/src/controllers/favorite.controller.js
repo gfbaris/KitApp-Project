@@ -6,9 +6,9 @@ const addFavorite = async (req, res, next) => {
   try {
     const { bookId } = req.params;
 
-    const book = await Book.findById(bookId);
+    const book = await Book.findOne({ _id: bookId, userId: req.user._id });
     if (!book) {
-      return res.status(404).json({ error: 'Kitap bulunamadı' });
+      return res.status(404).json({ error: 'Kitap bulunamadı veya size ait değil' });
     }
 
     const favorite = await Favorite.create({
