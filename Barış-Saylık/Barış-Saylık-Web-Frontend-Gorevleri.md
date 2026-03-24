@@ -1,6 +1,6 @@
 # Barış Saylık'ın Web Frontend Görevleri
 **Front-end Canlı Adres:** [kitapp-web.vercel.app](https://kitapp-web.vercel.app)
-**Front-end Test Videosu:** [Link buraya eklenecek](https://example.com)
+**Front-end Test Videosu:** [YouTube Video Linki](https://youtu.be/j86ZRsYZXYE)
 
 ## 1. Ana Sayfa (Home Page) & Kütüphane Yönetimi
 - **API Endpoints:** `GET /books`, `GET /ai/recommendations/{userId}`
