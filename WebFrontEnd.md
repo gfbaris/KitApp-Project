@@ -1,6 +1,6 @@
 # Web Frontend Görev Dağılımı
 
-**Web Frontend Adresi:** [frontend.yazmuh.com](https://frontend.yazmuh.com)
+**Web Frontend Adresi:** [kitapp-web.vercel.app](https://kitapp-web.vercel.app)
 
 Bu dokümanda, web uygulamasının kullanıcı arayüzü (UI) ve kullanıcı deneyimi (UX) görevleri listelenmektedir. Her grup üyesi, kendisine atanan sayfaların tasarımı, implementasyonu ve kullanıcı etkileşimlerinden sorumludur.
 
@@ -16,84 +16,51 @@ Bu dokümanda, web uygulamasının kullanıcı arayüzü (UI) ve kullanıcı den
 ## Genel Web Frontend Prensipleri
 
 ### 1. Responsive Tasarım
-- **Mobile-First Approach:** Önce mobil tasarım, sonra desktop
+- **Mobile-First Approach:** Tailwind'in `sm:`, `md:`, `lg:` prefixleri ile önce mobil, sonra desktop tasarımı.
 - **Breakpoints:** 
-  - Mobile: < 768px
-  - Tablet: 768px - 1024px
+  - Mobile: < 640px
+  - Tablet: 640px - 1024px
   - Desktop: > 1024px
-- **Flexible Layouts:** CSS Grid ve Flexbox kullanımı
-- **Responsive Images:** srcset ve sizes attributes
-- **Touch-Friendly:** Minimum 44x44px touch targets
+- **Flexible Layouts:** Flexbox ve Grid sisteminin yoğun kullanımı.
+- **Modern UI:** Glassmorphism ve modern kart tasarımları.
 
 ### 2. Tasarım Sistemi
-- **CSS Framework:** Bootstrap, Tailwind CSS, Material-UI, veya custom
-- **Renk Paleti:** Tutarlı renk kullanımı (CSS variables)
-- **Tipografi:** Web-safe fonts veya web fonts (Google Fonts)
-- **Spacing:** Tutarlı padding ve margin değerleri (8px grid sistemi)
-- **Iconography:** Icon library (Font Awesome, Material Icons, Heroicons)
-- **Component Library:** Reusable UI components
+- **CSS Framework:** Tailwind CSS (Utility-first CSS).
+- **Renk Paleti:** Özel renk paleti ve tutarlı gradyan geçişleri.
+- **Tipografi:** Google Fonts (Inter, Roboto gibi sans-serif fontlar).
+- **Iconography:** Lucide-React ikon kütüphanesi.
+- **Micro-interactions:** Hover efektleri ve yumuşak geçişler (transitions).
 
 ### 3. Performans Optimizasyonu
-- **Code Splitting:** Route-based ve component-based splitting
-- **Lazy Loading:** Images, components, ve routes
-- **Minification:** CSS ve JavaScript minification
-- **Compression:** Gzip/Brotli compression
-- **Caching:** Browser caching, service worker (PWA)
-- **Bundle Size:** Tree shaking, dead code elimination
+- **Build Tool:** Vite (Hızlı geliştirme ve optimize edilmiş build).
+- **Lazy Loading:** `React.lazy` ve `Suspense` ile sayfa bazlı yükleme.
+- **Asset Optimization:** SVG ve optimize edilmiş görseller.
+- **Code Splitting:** Dinamik route importları.
 
-### 4. SEO (Search Engine Optimization)
-- **Meta Tags:** Title, description, keywords
-- **Structured Data:** JSON-LD schema markup
-- **Semantic HTML:** Proper HTML5 semantic elements
-- **Alt Text:** Image alt attributes
-- **Sitemap:** XML sitemap generation
-- **Robots.txt:** Search engine crawling rules
+### 4. SEO ve Semantic HTML
+- **Semantic HTML:** `<header>`, `<main>`, `<section>`, `<article>`, `<footer>` kullanımı.
+- **Meta Tags:** Her sayfa için dinamik title ve description (SEO dostu).
+- **Accessibility:** Erişilebilir butonlar, input labellerı ve resim alt metinleri.
 
-### 5. Erişilebilirlik (Accessibility)
-- **WCAG 2.1 AA Compliance:** Minimum accessibility standard
-- **Keyboard Navigation:** Tab order, focus management
-- **Screen Reader Support:** ARIA labels, roles, landmarks
-- **Color Contrast:** Minimum 4.5:1 ratio
-- **Focus Indicators:** Visible focus states
-- **Skip Links:** Skip to main content
+### 5. State Management
+- **Hooks:** `useState`, `useEffect`, `useContext` ve `useMemo`.
+- **Global State:** Verilere merkezi erişim için React Context API.
+- **Persistence:** LocalStorage ile oturum ve tema yönetimi.
 
-### 6. Browser Compatibility
-- **Modern Browsers:** Chrome, Firefox, Safari, Edge (son 2 versiyon)
-- **Polyfills:** ES6+ features için gerekli polyfills
-- **CSS Prefixes:** Autoprefixer kullanımı
-- **Feature Detection:** Modernizr veya native feature detection
-- **Graceful Degradation:** Eski tarayıcılar için fallback
+### 6. Client-Side Routing
+- **Library:** React Router DOM.
+- **Protected Routes:** Yetkisiz kullanıcıların profil sayfasına erişiminin engellenmesi.
+- **Deep Linking:** Dinamik kitap detay sayfaları (`/books/:id`).
 
-### 7. State Management
-- **Global State:** Redux, Zustand, Context API (React), Vuex/Pinia (Vue)
-- **Local State:** Component state, hooks
-- **Server State:** React Query, SWR, Apollo Client
-- **Form State:** React Hook Form, Formik, React Final Form
+### 7. API Entegrasyonu
+- **HTTP Client:** Axios (Interceptors ile merkezi hata yönetimi).
+- **Async Handling:** async/await yapısı ve try/catch blokları.
+- **Loading States:** Veri çekme sırasında istersen spinner veya skeleton ekranlar.
 
-### 8. Routing
-- **Client-Side Routing:** React Router, Vue Router, Angular Router
-- **Deep Linking:** URL-based navigation
-- **Protected Routes:** Authentication guards
-- **404 Handling:** Custom 404 page
-- **History Management:** Browser history API
+### 8. Yapay Zeka (AI) Entegrasyonu
+- **Gemini AI:** Backend üzerinden sağlanan AI asistanı, kitap özetleme ve kişisel okuma analizleri.
+- **Dynamic Content:** AI tarafından üretilen içeriklerin akıcı bir şekilde ekranda gösterilmesi.
 
-### 9. API Entegrasyonu
-- **HTTP Client:** Axios, Fetch API, ky
-- **Request Interceptors:** Token injection, error handling
-- **Response Interceptors:** Error handling, token refresh
-- **Error Handling:** Centralized error handling
-- **Loading States:** Global loading indicator
-
-### 10. Testing
-- **Unit Tests:** Jest, Vitest, Mocha
-- **Integration Tests:** React Testing Library, Vue Test Utils
-- **E2E Tests:** Cypress, Playwright, Selenium
-- **Visual Regression:** Percy, Chromatic
-- **Accessibility Tests:** axe-core, Lighthouse
-
-### 11. Build ve Deployment
-- **Build Tool:** Webpack, Vite, Parcel, esbuild
-- **Module Bundler:** ES modules, CommonJS
-- **Environment Variables:** .env files
-- **CI/CD:** GitHub Actions, GitLab CI, Jenkins
-- **Hosting:** Vercel, Netlify, AWS, Azure
+### 9. Build ve Deployment
+- **Deployment:** Vercel (CD - Continuous Deployment üzerinden GitHub entegrasyonu).
+- **Env Management:** `.env` dosyaları ile API URL yönetimi (VITE_API_URL).
