@@ -26,8 +26,8 @@ Eğitim ve Kültür Teknolojileri
 
 ## Proje Linkleri
 
-- **REST API Adresi:** [Yakında](https://api.yazmuh.com)
-- **Web Frontend Adresi:** [Yakında](https://frontend.yazmuh.com)
+- **REST API Adresi:** [https://kitapp-api.vercel.app](https://kitapp-api.vercel.app)
+- **Web Frontend Adresi:** [https://kitapp-web.vercel.app](https://kitapp-web.vercel.app)
 
 ---
 
