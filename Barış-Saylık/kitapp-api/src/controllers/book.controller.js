@@ -157,6 +157,13 @@ const deleteBook = async (req, res, next) => {
     if (!book) {
       return res.status(404).json({ error: 'Kitap bulunamadı veya yetkisiz işlem' });
     }
+
+    // Ek bağlantılı verileri temizle (Favoriler, Değerlendirmeler)
+    await Promise.all([
+      Favorite.deleteMany({ bookId: book._id, userId: req.user._id }),
+      Rating.deleteMany({ bookId: book._id, userId: req.user._id })
+    ]);
+
     res.status(204).send();
   } catch (error) {
     next(error);
