@@ -54,11 +54,18 @@ const searchBooks = async (req, res, next) => {
     const limitNum = Math.min(50, Math.max(1, parseInt(limit)));
     const skip = (pageNum - 1) * limitNum;
 
-    const query = { $text: { $search: searchQuery }, userId: req.user._id };
+    const regex = new RegExp(searchQuery, 'i');
+    const query = { 
+      $or: [
+        { title: regex },
+        { author: regex }
+      ],
+      userId: req.user._id 
+    };
 
     const [books, total] = await Promise.all([
-      Book.find(query, { score: { $meta: 'textScore' } })
-        .sort({ score: { $meta: 'textScore' } })
+      Book.find(query)
+        .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limitNum),
       Book.countDocuments(query),
