@@ -206,10 +206,11 @@ const getReadingAnalysis = async (req, res, next) => {
     const totalRatings = ratings.length;
     const avgScoreText = totalRatings > 0 ? (ratings.reduce((s, r) => s + r.score, 0) / totalRatings).toFixed(2) : "0";
 
-    // Türlere göre dağılım
-    ratings.forEach((r) => {
-      if (r.bookId?.genre) {
-        genreMap[r.bookId.genre] = (genreMap[r.bookId.genre] || 0) + 1;
+    // Türlere göre dağılım (Kullanıcının TÜM kütüphanesi üzerinden daha sağlıklı sonuç verir)
+    const userBooks = await Book.find({ userId });
+    userBooks.forEach((b) => {
+      if (b.genre) {
+        genreMap[b.genre] = (genreMap[b.genre] || 0) + 1;
       }
     });
 
