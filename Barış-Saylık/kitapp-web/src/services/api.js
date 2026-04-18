@@ -1,7 +1,7 @@
 import axios from 'axios'
 
 const api = axios.create({
-  baseURL: 'https://kitapp-api.vercel.app'
+  baseURL: import.meta.env.VITE_API_URL || 'https://kitapp-api.vercel.app'
 })
 
 api.interceptors.request.use(config => {

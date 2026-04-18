@@ -1,0 +1,40 @@
+services:
+
+  # ── Backend (Node.js / Express) ─────────────────────────────────────────────
+  kitapp_api:
+    build:
+      context: ./kitapp-api
+      dockerfile: Dockerfile
+    container_name: kitapp_api
+    ports:
+      - "5000:5000"
+    # .env dosyasındaki tüm değişkenleri (MONGO_URI, JWT_SECRET, vb.) okur
+    env_file:
+      - ./kitapp-api/.env
+    networks:
+      - kitapp-network
+    restart: always
+
+  # ── Frontend (React / Vite) ──────────────────────────────────────────────────
+  kitapp_web:
+    build:
+      context: ./kitapp-web
+      dockerfile: Dockerfile
+    container_name: kitapp_web
+    ports:
+      - "5173:5173"
+    environment:
+      # Tarayıcı bu adrese istek atacak; Docker içinden host makinasına erişim
+      - VITE_API_URL=http://localhost:5000
+    networks:
+      - kitapp-network
+    restart: always
+    depends_on:
+      - kitapp_api
+
+# ── Shared Network ──────────────────────────────────────────────────────────
+networks:
+  kitapp-network:
+    driver: bridge
+    ipam:
+      driver: default
