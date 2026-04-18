@@ -3,14 +3,14 @@ services:
   # ── Backend (Node.js / Express) ─────────────────────────────────────────────
   kitapp_api:
     build:
-      context: ./kitapp-api
+      context: ./Barış-Saylık/kitapp-api
       dockerfile: Dockerfile
     container_name: kitapp_api
     ports:
       - "5000:5000"
     # .env dosyasındaki tüm değişkenleri (MONGO_URI, JWT_SECRET, vb.) okur
     env_file:
-      - ./kitapp-api/.env
+      - ./Barış-Saylık/kitapp-api/.env
     networks:
       - kitapp-network
     restart: always
@@ -18,7 +18,7 @@ services:
   # ── Frontend (React / Vite) ──────────────────────────────────────────────────
   kitapp_web:
     build:
-      context: ./kitapp-web
+      context: ./Barış-Saylık/kitapp-web
       dockerfile: Dockerfile
     container_name: kitapp_web
     ports:

@@ -1,0 +1,1 @@
+fix(frontend): UI eksikleri yokedildi, arama reset eklendi, login message, profile stats duzenlendi
